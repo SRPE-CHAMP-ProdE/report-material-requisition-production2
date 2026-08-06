@@ -128,33 +128,22 @@
 
         <div id="view-overview" class="space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2 bg-github-card border border-github-border rounded-lg p-5 shadow-sm">
+                <!-- Full-width main chart (lg:col-span-3) -->
+                <div class="lg:col-span-3 bg-github-card border border-github-border rounded-lg p-5 shadow-sm">
                     <div class="flex items-center justify-between pb-4 mb-4 border-b border-github-border">
                         <div class="flex items-center space-x-2">
                             <i data-lucide="bar-chart-3" class="w-5 h-5 text-github-blue"></i>
-                            <h3 class="font-semibold text-white text-sm">กราฟแสดงข้อมูลของดีของเสีย (รายวัน สค. 69)</h3>
+                            <h3 class="font-semibold text-white text-sm">กราฟแสดงยอดรวม/วัน (สีฟ้า) และสัดส่วนของดี (สีเขียว) / ของเสีย (สีแดง) รายวัน สค. 69</h3>
                         </div>
                         <span class="text-xs text-github-muted bg-github-dark px-2 py-1 border border-github-border rounded">สค. 2569</span>
                     </div>
-                    <div class="relative h-72 w-full">
+                    <div class="relative h-96 w-full">
                         <canvas id="mainChart"></canvas>
-                    </div>
-                </div>
-
-                <div class="bg-github-card border border-github-border rounded-lg p-5 shadow-sm">
-                    <div class="flex items-center justify-between pb-4 mb-4 border-b border-github-border">
-                        <div class="flex items-center space-x-2">
-                            <i data-lucide="pie-chart" class="w-5 h-5 text-github-green"></i>
-                            <h3 class="font-semibold text-white text-sm">สัดส่วนการเบิกเม็ดตามเครื่องจักร EXT</h3>
-                        </div>
-                        <span class="text-xs text-github-muted">EXT-01..14</span>
-                    </div>
-                    <div class="relative h-72 w-full flex items-center justify-center">
-                        <canvas id="machineShareChart"></canvas>
                     </div>
                 </div>
             </div>
 
+            <!-- Heatmap section -->
             <div class="bg-github-card border border-github-border rounded-lg p-5 shadow-sm">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center space-x-2">
@@ -310,7 +299,7 @@
             } catch (error) {
                 console.error("Fetch error:", error);
                 statusDot.className = "inline-block w-2 h-2 rounded-full bg-github-red mr-1";
-                statusText.innerText = "Connection Failed (Using Mock Data)";
+                statusText.innerText = "Connection Failed (Using Mock Data with ~7% Examples)";
                 initFallbackData();
             }
         }
@@ -318,12 +307,26 @@
         function initFallbackData() {
             dataset = [];
             for (let day = 1; day <= 31; day++) {
+                let machines = new Array(14).fill(0);
+                let defect = 0;
+                if (day <= 10) {
+                    for(let m=0; m<14; m++) {
+                        machines[m] = Math.floor(Math.random() * 1500) + 800;
+                    }
+                    const totalIn = machines.reduce((a,b)=>a+b, 0);
+                    // ตัวอย่างข้อมูลจำลองสำหรับทดสอบเกณฑ์ของเสีย (Good <7%, Warning 7-15%, Critical >15%)
+                    if (day === 1) defect = totalIn * 0.04;      // Good (~4%)
+                    else if (day === 2) defect = totalIn * 0.075;  // Warning (~7.5%)
+                    else if (day === 3) defect = totalIn * 0.16;   // Critical Alert (~16%)
+                    else if (day === 4) defect = totalIn * 0.05;   // Good (~5%)
+                    else if (day === 5) defect = totalIn * 0.07;   // Warning (7% พอดีเป๊ะ)
+                    else defect = totalIn * (Math.random() * 0.08 + 0.03);
+                }
                 dataset.push({
                     id: day,
                     date: `${day}/8/2026`,
-                    machines: new Array(14).fill(0),
-                    good: 0,
-                    defect: 0
+                    machines: machines,
+                    defect: parseFloat(defect.toFixed(2))
                 });
             }
             populateDateDropdown();
@@ -342,7 +345,6 @@
         }
 
         let mainChartInstance = null;
-        let machineShareChartInstance = null;
 
         function switchTab(tab) {
             const overviewBtn = document.getElementById('tab-overview');
@@ -440,21 +442,74 @@
             lucide.createIcons();
         }
 
+        // Custom plugin to draw percentage labels on stacked Good & Defect bars
+        const percentagePlugin = {
+            id: 'percentagePlugin',
+            afterDatasetsDraw(chart) {
+                const { ctx } = chart;
+                chart.data.datasets.forEach((dataset, datasetIndex) => {
+                    // Only for Good (index 1) and Defect (index 2)
+                    if (datasetIndex === 1 || datasetIndex === 2) {
+                        const meta = chart.getDatasetMeta(datasetIndex);
+                        meta.data.forEach((bar, index) => {
+                            const activeDaysList = chart._activeDaysList || [];
+                            const item = activeDaysList[index];
+                            if (item) {
+                                const m = calculateMetrics(item);
+                                const totalIn = m.totalInput;
+                                const val = dataset.data[index];
+                                if (totalIn > 0 && val > 0) {
+                                    const pct = ((val / totalIn) * 100).toFixed(1) + '%';
+                                    ctx.fillStyle = '#ffffff';
+                                    ctx.font = 'bold 10px sans-serif';
+                                    ctx.textAlign = 'center';
+                                    ctx.textBaseline = 'middle';
+                                    const { x, y } = bar.tooltipPosition();
+                                    ctx.fillText(pct, x, y);
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+        };
+
         function renderCharts() {
             const activeDays = dataset.filter(d => calculateMetrics(d).totalInput > 0);
             const labels = activeDays.map(d => d.date);
+            const totalInputData = activeDays.map(d => calculateMetrics(d).totalInput);
             const goodData = activeDays.map(d => calculateMetrics(d).goodVal);
             const defectData = activeDays.map(d => calculateMetrics(d).defect);
 
             if (mainChartInstance) mainChartInstance.destroy();
             const ctxMain = document.getElementById('mainChart').getContext('2d');
-            mainChartInstance = new Chart(ctxMain, {
+            
+            // Attach activeDays to chart instance for plugin access
+            const chartConfig = {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'ยอดรวมของดี', data: goodData, backgroundColor: '#2ea043', borderRadius: 4 },
-                        { label: 'ของเสีย (Defect)', data: defectData, backgroundColor: '#f85149', borderRadius: 4 }
+                        { 
+                            label: 'ยอดรวม/วัน (Total Input)', 
+                            data: totalInputData, 
+                            backgroundColor: '#58a6ff', 
+                            borderRadius: 4 
+                        },
+                        { 
+                            label: 'ยอดของดี (Good)', 
+                            data: goodData, 
+                            backgroundColor: '#2ea043', 
+                            borderRadius: 4,
+                            stack: 'quality'
+                        },
+                        { 
+                            label: 'ของเสีย (Defect)', 
+                            data: defectData, 
+                            backgroundColor: '#f85149', 
+                            borderRadius: 4,
+                            stack: 'quality'
+                        }
                     ]
                 },
                 options: {
@@ -468,41 +523,12 @@
                         x: { grid: { color: '#30363d' }, ticks: { color: '#8b949e', maxRotation: 45, minRotation: 0 } },
                         y: { grid: { color: '#30363d' }, ticks: { color: '#8b949e' } }
                     }
-                }
-            });
-
-            let machineTotals = new Array(14).fill(0);
-            dataset.forEach(d => {
-                if (Array.isArray(d.machines)) {
-                    d.machines.forEach((val, i) => { machineTotals[i] += (val || 0); });
-                }
-            });
-
-            if (machineShareChartInstance) machineShareChartInstance.destroy();
-            const ctxShare = document.getElementById('machineShareChart').getContext('2d');
-            machineShareChartInstance = new Chart(ctxShare, {
-                type: 'doughnut',
-                data: {
-                    labels: Array.from({length: 14}, (_, i) => `EXT-${(i+1).toString().padStart(2, '0')}`),
-                    datasets: [{
-                        data: machineTotals,
-                        backgroundColor: [
-                            '#58a6ff', '#2ea043', '#f85149', '#d29922', '#bc8cff', 
-                            '#3fb950', '#ff7b72', '#79c0ff', '#56d364', '#f0883e', 
-                            '#a371f7', '#238636', '#da3633', '#388bfd'
-                        ],
-                        borderWidth: 1,
-                        borderColor: '#161b22'
-                    }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { color: '#c9d1d9', font: { size: 8 }, boxWidth: 8 } }
-                    }
-                }
-            });
+                plugins: [percentagePlugin]
+            };
+
+            mainChartInstance = new Chart(ctxMain, chartConfig);
+            mainChartInstance._activeDaysList = activeDays;
         }
 
         function renderHeatmap() {
