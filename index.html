@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub QC Dashboard & Machine Matrix (สค. 69 - EXT-01 ถึง EXT-14)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        github: {
+                            dark: '#0d1116',
+                            card: '#161b22',
+                            border: '#30363d',
+                            text: '#c9d1d9',
+                            muted: '#8b949e',
+                            green: '#2ea043',
+                            greenBg: '#238636',
+                            red: '#f85149',
+                            redBg: '#da3633',
+                            blue: '#58a6ff',
+                            hover: '#21262d'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-github-dark text-github-text min-h-screen font-sans antialiased selection:bg-github-blue selection:text-white">
+
+    <header class="border-b border-github-border bg-github-dark sticky top-0 z-50 px-4 lg:px-8 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <svg class="h-8 w-8 text-github-text" viewBox="0 0 16 16" fill="currentColor">
+                <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.22 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+            </svg>
+            <div class="flex items-center space-x-2 text-sm">
+                <span class="text-github-blue font-medium hover:underline cursor-pointer">sr-pe-group</span>
+                <span class="text-github-muted">/</span>
+                <span class="font-bold text-white hover:underline cursor-pointer">report-material-requisition-ext1-14</span>
+                <span class="ml-2 px-2 py-0.5 text-xs font-medium bg-github-card border border-github-border rounded-full text-github-muted">สค. 2569</span>
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+            <div class="hidden sm:flex items-center space-x-1 bg-github-card border border-github-border rounded-md px-3 py-1 text-xs">
+                <span class="inline-block w-2 h-2 rounded-full bg-github-green animate-pulse mr-1"></span>
+                <span class="text-github-text font-medium">Google Sheets Live Connected</span>
+            </div>
+            <button onclick="openAddModal()" class="flex items-center space-x-1.5 bg-github-blue hover:bg-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors shadow-sm">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>เพิ่ม/แก้ไขข้อมูลรายวัน</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 lg:px-8 py-6 space-y-6">
+
+        <div class="flex border-b border-github-border space-x-6 text-sm font-medium">
+            <button onclick="switchTab('overview')" id="tab-overview" class="pb-3 border-b-2 border-github-blue text-white flex items-center space-x-2 transition-colors">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                <span>ภาพรวมแดชบอร์ด (Dashboard)</span>
+            </button>
+            <button onclick="switchTab('matrix')" id="tab-matrix" class="pb-3 border-b-2 border-transparent text-github-muted hover:text-white flex items-center space-x-2 transition-colors">
+                <i data-lucide="table" class="w-4 h-4"></i>
+                <span>ตารางเมทริกซ์เครื่องจักร EXT-01 ถึง EXT-14 (Google Sheets View)</span>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-github-card border border-github-border rounded-lg p-4 shadow-sm hover:border-github-muted transition-all">
+                <div class="flex items-center justify-between text-github-muted text-xs font-medium">
+                    <span>TOTAL INPUT (ยอดเบิกเม็ดรวม)</span>
+                    <i data-lucide="layers" class="w-4 h-4 text-github-blue"></i>
+                </div>
+                <div class="mt-2 flex items-baseline space-x-2">
+                    <span class="text-2xl font-bold text-white" id="stat-total-input">0</span>
+                    <span class="text-xs text-github-green font-medium">kg</span>
+                </div>
+                <p class="text-xs text-github-muted mt-1">สูตร: =SUM(B:O)</p>
+            </div>
+
+            <div class="bg-github-card border border-github-border rounded-lg p-4 shadow-sm hover:border-github-muted transition-all">
+                <div class="flex items-center justify-between text-github-muted text-xs font-medium">
+                    <span>GOOD PRODUCTS (ยอดรวมของดี)</span>
+                    <i data-lucide="check-circle" class="w-4 h-4 text-github-green"></i>
+                </div>
+                <div class="mt-2 flex items-baseline space-x-2">
+                    <span class="text-2xl font-bold text-white" id="stat-total-good">0</span>
+                    <span class="text-xs text-github-green font-medium" id="stat-total-good-pct">0%</span>
+                </div>
+                <p class="text-xs text-github-muted mt-1">Input - Actual Defect</p>
+            </div>
+
+            <div class="bg-github-card border border-github-border rounded-lg p-4 shadow-sm hover:border-github-muted transition-all">
+                <div class="flex items-center justify-between text-github-muted text-xs font-medium">
+                    <span>DEFECTIVE (ของเสียรวม)</span>
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-github-red"></i>
+                </div>
+                <div class="mt-2 flex items-baseline space-x-2">
+                    <span class="text-2xl font-bold text-github-red" id="stat-total-defect">0</span>
+                    <span class="text-xs text-github-red font-medium" id="stat-total-defect-pct">0%</span>
+                </div>
+                <p class="text-xs text-github-muted mt-1">สูตร: = ยอดรวม - ของดี</p>
+            </div>
+
+            <div class="bg-github-card border border-github-border rounded-lg p-4 shadow-sm hover:border-github-muted transition-all">
+                <div class="flex items-center justify-between text-github-muted text-xs font-medium">
+                    <span>ACTIVE MACHINES</span>
+                    <i data-lucide="cpu" class="w-4 h-4 text-github-blue"></i>
+                </div>
+                <div class="mt-2 flex items-baseline space-x-2">
+                    <span class="text-2xl font-bold text-white">14</span>
+                    <span class="text-xs text-github-blue font-medium">EXT-01 ถึง EXT-14</span>
+                </div>
+                <p class="text-xs text-github-muted mt-1">สายการผลิต สค. 2569</p>
+            </div>
+        </div>
+
+        <div id="view-overview" class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Main Production Chart -->
+                <div class="lg:col-span-2 bg-github-card border border-github-border rounded-lg p-5 shadow-sm">
+                    <div class="flex items-center justify-between pb-4 mb-4 border-b border-github-border">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5 text-github-blue"></i>
+                            <h3 class="font-semibold text-white text-sm">กราฟแสดงข้อมูลของดีของเสีย (รายวัน สค. 69)</h3>
+                        </div>
+                        <span class="text-xs text-github-muted bg-github-dark px-2 py-1 border border-github-border rounded">สค. 2569</span>
+                    </div>
+                    <div class="relative h-72 w-full">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Machine Share Doughnut Chart -->
+                <div class="bg-github-card border border-github-border rounded-lg p-5 shadow-sm">
+                    <div class="flex items-center justify-between pb-4 mb-4 border-b border-github-border">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="pie-chart" class="w-5 h-5 text-github-green"></i>
+                            <h3 class="font-semibold text-white text-sm">สัดส่วนการเบิกเม็ดตามเครื่องจักร EXT</h3>
+                        </div>
+                        <span class="text-xs text-github-muted">EXT-01..14</span>
+                    </div>
+                    <div class="relative h-72 w-full flex items-center justify-center">
+                        <canvas id="machineShareChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Heatmap Summary Card -->
+            <div class="bg-github-card border border-github-border rounded-lg p-5 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="calendar" class="w-5 h-5 text-github-green"></i>
+                        <h3 class="font-semibold text-white text-sm">Quality Status Heatmap (สิงหาคม 2569) - เกณฑ์สถานะคุณภาพ</h3>
+                    </div>
+                    <div class="flex items-center space-x-3 text-xs">
+                        <span class="flex items-center space-x-1"><span class="w-3 h-3 bg-[#39d353] rounded-sm inline-block"></span><span>Good (&lt;7%)</span></span>
+                        <span class="flex items-center space-x-1"><span class="w-3 h-3 bg-amber-500 rounded-sm inline-block"></span><span>Warning (7-15%)</span></span>
+                        <span class="flex items-center space-x-1"><span class="w-3 h-3 bg-[#f85149] rounded-sm inline-block"></span><span>Alert (&gt;15%)</span></span>
+                    </div>
+                </div>
+                <div class="p-3 bg-github-dark border border-github-border rounded-md overflow-x-auto">
+                    <div class="grid grid-flow-col grid-rows-7 gap-1.5" id="heatmap-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-matrix" class="space-y-6 hidden">
+            <div class="bg-github-card border border-github-border rounded-lg shadow-sm overflow-hidden">
+                <div class="p-4 bg-github-dark border-b border-github-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="file-spreadsheet" class="w-5 h-5 text-github-green"></i>
+                        <h3 class="font-semibold text-white text-sm">รายงานการเบิกเม็ด แยกตามเครื่องจักร (ประจำเดือน สิงหาคม 2569)</h3>
+                    </div>
+                    <div class="flex items-center space-x-2 w-full sm:w-auto">
+                        <input type="text" id="search-matrix" onkeyup="filterMatrixTable()" placeholder="ค้นหาวันที่..." class="bg-github-card border border-github-border rounded-md px-3 py-1 text-xs text-github-text w-full sm:w-64 focus:outline-none focus:border-github-blue">
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse whitespace-nowrap" id="matrix-table">
+                        <thead>
+                            <tr class="bg-github-dark/80 text-github-muted border-b border-github-border font-mono">
+                                <th class="py-3 px-3">DATE</th>
+                                <th class="py-3 px-3">EXT-01</th>
+                                <th class="py-3 px-3">EXT-02</th>
+                                <th class="py-3 px-3">EXT-03</th>
+                                <th class="py-3 px-3">EXT-04</th>
+                                <th class="py-3 px-3">EXT-05</th>
+                                <th class="py-3 px-3">EXT-06</th>
+                                <th class="py-3 px-3">EXT-07</th>
+                                <th class="py-3 px-3">EXT-08</th>
+                                <th class="py-3 px-3">EXT-09</th>
+                                <th class="py-3 px-3">EXT-10</th>
+                                <th class="py-3 px-3">EXT-11</th>
+                                <th class="py-3 px-3">EXT-12</th>
+                                <th class="py-3 px-3">EXT-13</th>
+                                <th class="py-3 px-3">EXT-14</th>
+                                <th class="py-3 px-3 text-github-blue font-bold">ยอดรวม/วัน</th>
+                                <th class="py-3 px-3 text-github-green font-bold">ยอดรวมของดี</th>
+                                <th class="py-3 px-3 text-github-green">ของดี (%)</th>
+                                <th class="py-3 px-3 text-github-red font-bold">ของเสีย</th>
+                                <th class="py-3 px-3 text-github-red">คิดเป็น %</th>
+                                <th class="py-3 px-3">สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-github-border font-mono text-[11px]" id="matrix-tbody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="data-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-github-card border border-github-border rounded-lg max-w-3xl w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-github-border pb-3">
+                <h3 class="font-bold text-white text-base flex items-center space-x-2">
+                    <i data-lucide="plus-circle" class="w-5 h-5 text-github-blue"></i>
+                    <span>บันทึก/แก้ไขข้อมูลรายวัน (สค. 2569)</span>
+                </h3>
+                <button onclick="closeAddModal()" class="text-github-muted hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            
+            <form id="qc-form" onsubmit="saveDataRecord(event)" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-github-muted mb-1">เลือกวันที่</label>
+                        <select id="input-date" class="w-full bg-github-dark border border-github-border rounded p-2 text-xs text-white focus:border-github-blue focus:outline-none">
+                            <!-- populated 1-31 aug -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-github-muted mb-1">ยอดรวมของดี (kg) [ช่อง Q]</label>
+                        <input type="number" step="0.01" id="input-good" required placeholder="เช่น 82566.82" class="w-full bg-github-dark border border-github-border rounded p-2 text-xs text-white focus:border-github-blue focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-github-muted mb-2 font-semibold text-github-blue">จำนวนเม็ดที่เบิกแยกตามเครื่องจักร EXT-01 ถึง EXT-14 (kg)</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+                        <!-- Populated inputs for 14 machines -->
+                        <script>
+                            let inputsHTML = '';
+                            for(let i=1; i<=14; i++) {
+                                inputsHTML += `
+                                    <div>
+                                        <label class="text-[10px] text-github-muted">EXT-${i.toString().padStart(2, '0')}</label>
+                                        <input type="number" step="0.01" id="ext-${i}" value="0" class="w-full bg-github-dark border border-github-border rounded p-1.5 text-xs text-white machine-input">
+                                    </div>
+                                `;
+                            }
+                            document.write(inputsHTML);
+                        </script>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4 border-t border-github-border">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 rounded text-xs bg-github-dark border border-github-border hover:bg-github-hover text-white">ยกเลิก</button>
+                    <button type="submit" class="px-4 py-2 rounded text-xs bg-github-green hover:bg-github-greenBg text-white font-semibold">บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-github-card border border-github-border text-white px-4 py-3 rounded-lg shadow-2xl z-50 transform translate-y-20 opacity-0 transition-all duration-300 flex items-center space-x-2">
+        <i data-lucide="check-circle" class="w-4 h-4 text-github-green"></i>
+        <span id="toast-msg" class="text-xs font-medium">บันทึกสำเร็จ</span>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Initialize 31 days of August 2026 with exact data from user's Excel sheet
+        let dataset = [];
+        const initialDataMap = {
+            1: { machines: [0, 0, 8000, 6000, 3500, 8000, 11000, 6500, 7500, 4000, 8500, 18000, 4500, 0], good: 82566.82 },
+            2: { machines: [11500, 0, 7000, 5500, 6000, 8500, 10000, 7500, 4500, 4000, 9000, 9500, 5000, 0], good: 61995.36 },
+            3: { machines: [11000, 7500, 8000, 6000, 6000, 7500, 9500, 7500, 7500, 4000, 9000, 17500, 5000, 0], good: 89559.82 },
+            4: { machines: [10500, 8500, 8000, 6500, 6000, 8000, 10000, 8000, 8000, 4500, 9000, 18000, 5000, 0], good: 83761.69 },
+            5: { machines: [10500, 8500, 5000, 6500, 6000, 8000, 10250, 7500, 8000, 4500, 9000, 18000, 5500, 0], good: 94117.39 }
+        };
+
+        for (let day = 1; day <= 31; day++) {
+            const dateStr = `${day}/8/2026`;
+            if (initialDataMap[day]) {
+                dataset.push({
+                    id: day,
+                    date: dateStr,
+                    machines: initialDataMap[day].machines,
+                    good: initialDataMap[day].good
+                });
+            } else {
+                dataset.push({
+                    id: day,
+                    date: dateStr,
+                    machines: new Array(14).fill(0),
+                    good: 0
+                });
+            }
+        }
+
+        // Populate date dropdown in modal
+        const dateSelect = document.getElementById('input-date');
+        dataset.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.date;
+            opt.innerText = d.date;
+            dateSelect.appendChild(opt);
+        });
+
+        let mainChartInstance = null;
+        let machineShareChartInstance = null;
+
+        function switchTab(tab) {
+            const overviewBtn = document.getElementById('tab-overview');
+            const matrixBtn = document.getElementById('tab-matrix');
+            const overviewView = document.getElementById('view-overview');
+            const matrixView = document.getElementById('view-matrix');
+
+            if (tab === 'overview') {
+                overviewBtn.className = "pb-3 border-b-2 border-github-blue text-white flex items-center space-x-2 transition-colors";
+                matrixBtn.className = "pb-3 border-b-2 border-transparent text-github-muted hover:text-white flex items-center space-x-2 transition-colors";
+                overviewView.classList.remove('hidden');
+                matrixView.classList.add('hidden');
+            } else {
+                matrixBtn.className = "pb-3 border-b-2 border-github-blue text-white flex items-center space-x-2 transition-colors";
+                overviewView.className = "pb-3 border-b-2 border-transparent text-github-muted hover:text-white flex items-center space-x-2 transition-colors hidden";
+                matrixView.classList.remove('hidden');
+                overviewView.classList.add('hidden');
+            }
+        }
+
+        function calculateMetrics(item) {
+            const totalInput = item.machines.reduce((a, b) => a + b, 0);
+            const defect = totalInput > 0 ? Math.max(0, totalInput - item.good) : 0;
+            const goodPct = totalInput > 0 ? (item.good / totalInput) * 100 : 0;
+            const defectPct = totalInput > 0 ? (defect / totalInput) * 100 : 0;
+            
+            let status = { text: 'Pending', color: 'text-github-muted', badgeBg: 'bg-github-card' };
+            if (totalInput > 0) {
+                if (defectPct < 7) {
+                    status = { text: 'Good', color: 'text-[#39d353] font-bold', badgeBg: 'bg-[#39d353]/10 border border-[#39d353]/30' };
+                } else if (defectPct < 15) {
+                    status = { text: 'Warning', color: 'text-amber-400 font-bold', badgeBg: 'bg-amber-500/10 border border-amber-500/30' };
+                } else {
+                    status = { text: 'Critical Alert', color: 'text-github-red font-bold', badgeBg: 'bg-github-red/10 border border-github-red/30' };
+                }
+            }
+
+            return { totalInput, defect, goodPct, defectPct, status };
+        }
+
+        function updateDashboardStats() {
+            let totalInputAll = 0;
+            let totalGoodAll = 0;
+            let totalDefectAll = 0;
+
+            dataset.forEach(d => {
+                const m = calculateMetrics(d);
+                totalInputAll += m.totalInput;
+                totalGoodAll += d.good;
+                totalDefectAll += m.defect;
+            });
+
+            const overallGoodPct = totalInputAll > 0 ? (totalGoodAll / totalInputAll) * 100 : 0;
+            const overallDefectPct = totalInputAll > 0 ? (totalDefectAll / totalInputAll) * 100 : 0;
+
+            document.getElementById('stat-total-input').innerText = totalInputAll.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('stat-total-good').innerText = totalGoodAll.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('stat-total-good-pct').innerText = overallGoodPct.toFixed(2) + '% ของดี';
+            document.getElementById('stat-total-defect').innerText = totalDefectAll.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('stat-total-defect-pct').innerText = overallDefectPct.toFixed(2) + '% ของเสีย';
+        }
+
+        function renderMatrixTable(dataToRender = dataset) {
+            const tbody = document.getElementById('matrix-tbody');
+            tbody.innerHTML = '';
+
+            dataToRender.forEach((item) => {
+                const m = calculateMetrics(item);
+                let machineCells = item.machines.map(val => `<td class="py-2.5 px-3">${val > 0 ? val.toLocaleString() : '-'}</td>`).join('');
+                
+                let row = `
+                    <tr class="hover:bg-github-hover transition-colors">
+                        <td class="py-2.5 px-3 font-bold text-white">${item.date}</td>
+                        ${machineCells}
+                        <td class="py-2.5 px-3 text-github-blue font-bold">${m.totalInput > 0 ? m.totalInput.toLocaleString() : '-'}</td>
+                        <td class="py-2.5 px-3 text-github-green font-semibold">${item.good > 0 ? item.good.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}</td>
+                        <td class="py-2.5 px-3 text-github-green">${m.totalInput > 0 ? m.goodPct.toFixed(2) + '%' : '-'}</td>
+                        <td class="py-2.5 px-3 text-github-red font-semibold">${m.totalInput > 0 ? m.defect.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}</td>
+                        <td class="py-2.5 px-3 text-github-red">${m.totalInput > 0 ? m.defectPct.toFixed(2) + '%' : '-'}</td>
+                        <td class="py-2.5 px-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] ${m.status.badgeBg} ${m.status.color}">${m.status.text}</span>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+            lucide.createIcons();
+        }
+
+        function renderCharts() {
+            const activeDays = dataset.filter(d => calculateMetrics(d).totalInput > 0);
+            const labels = activeDays.map(d => d.date);
+            const goodData = activeDays.map(d => d.good);
+            const defectData = activeDays.map(d => calculateMetrics(d).defect);
+
+            if (mainChartInstance) mainChartInstance.destroy();
+            const ctxMain = document.getElementById('mainChart').getContext('2d');
+            mainChartInstance = new Chart(ctxMain, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'ยอดรวมของดี', data: goodData, backgroundColor: '#2ea043', borderRadius: 4 },
+                        { label: 'ของเสีย (Defect)', data: defectData, backgroundColor: '#f85149', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#c9d1d9', font: { size: 11 } } },
+                        tooltip: { backgroundColor: '#161b22', titleColor: '#fff', bodyColor: '#c9d1d9', borderColor: '#30363d', borderWidth: 1 }
+                    },
+                    scales: {
+                        x: { grid: { color: '#30363d' }, ticks: { color: '#8b949e' } },
+                        y: { grid: { color: '#30363d' }, ticks: { color: '#8b949e' } }
+                    }
+                }
+            });
+
+            let machineTotals = new Array(14).fill(0);
+            dataset.forEach(d => {
+                d.machines.forEach((val, i) => { machineTotals[i] += val; });
+            });
+
+            if (machineShareChartInstance) machineShareChartInstance.destroy();
+            const ctxShare = document.getElementById('machineShareChart').getContext('2d');
+            machineShareChartInstance = new Chart(ctxShare, {
+                type: 'doughnut',
+                data: {
+                    labels: Array.from({length: 14}, (_, i) => `EXT-${(i+1).toString().padStart(2, '0')}`),
+                    datasets: [{
+                        data: machineTotals,
+                        backgroundColor: [
+                            '#58a6ff', '#2ea043', '#f85149', '#d29922', '#bc8cff', 
+                            '#3fb950', '#ff7b72', '#79c0ff', '#56d364', '#f0883e', 
+                            '#a371f7', '#238636', '#da3633', '#388bfd'
+                        ],
+                        borderWidth: 1,
+                        borderColor: '#161b22'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#c9d1d9', font: { size: 8 }, boxWidth: 8 } }
+                    }
+                }
+            });
+        }
+
+        function renderHeatmap() {
+            const heatmapGrid = document.getElementById('heatmap-grid');
+            heatmapGrid.innerHTML = '';
+            for (let i = 0; i < 31; i++) {
+                let cellColor = 'bg-[#161b22] border border-github-border';
+                let titleText = `วันที่ ${i+1} สิงหาคม: ยังไม่มีข้อมูล`;
+                
+                const matched = dataset[i];
+                const m = calculateMetrics(matched);
+                if (m.totalInput > 0) {
+                    if (m.defectPct < 7) {
+                        cellColor = 'bg-[#39d353]';
+                        titleText = `วันที่ ${i+1} สค.: Good (Defect ${m.defectPct.toFixed(1)}%)`;
+                    } else if (m.defectPct < 15) {
+                        cellColor = 'bg-amber-500';
+                        titleText = `วันที่ ${i+1} สค.: Warning (Defect ${m.defectPct.toFixed(1)}%)`;
+                    } else {
+                        cellColor = 'bg-[#f85149]';
+                        titleText = `วันที่ ${i+1} สค.: Critical Alert (Defect ${m.defectPct.toFixed(1)}%)`;
+                    }
+                }
+                heatmapGrid.innerHTML += `<div class="w-3.5 h-3.5 rounded-sm ${cellColor} cursor-pointer hover:ring-1 hover:ring-white transition-all" title="${titleText}"></div>`;
+            }
+        }
+
+        function openAddModal() {
+            document.getElementById('data-modal').classList.remove('hidden');
+        }
+
+        function closeAddModal() {
+            document.getElementById('data-modal').classList.add('hidden');
+        }
+
+        function saveDataRecord(event) {
+            event.preventDefault();
+            const selectedDate = document.getElementById('input-date').value;
+            const goodVal = parseFloat(document.getElementById('input-good').value) || 0;
+            
+            let machines = [];
+            for (let i = 1; i <= 14; i++) {
+                machines.push(parseFloat(document.getElementById(`ext-${i}`).value) || 0);
+            }
+
+            const targetIndex = dataset.findIndex(d => d.date === selectedDate);
+            if (targetIndex !== -1) {
+                dataset[targetIndex].machines = machines;
+                dataset[targetIndex].good = goodVal;
+            }
+
+            refreshAll();
+            closeAddModal();
+            showToast('บันทึกและอัปเดตข้อมูลสำเร็จ!');
+        }
+
+        function filterMatrixTable() {
+            const query = document.getElementById('search-matrix').value.toLowerCase();
+            const filtered = dataset.filter(d => d.date.toLowerCase().includes(query));
+            renderMatrixTable(filtered);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function refreshAll() {
+            updateDashboardStats();
+            renderMatrixTable();
+            renderCharts();
+            renderHeatmap();
+        }
+
+        window.onload = function() {
+            refreshAll();
+        };
+    </script>
+</body>
+</html>
