@@ -238,7 +238,7 @@
             </div>
             
             <form id="qc-form" onsubmit="saveDataRecord(event)" class="space-y-4">
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs text-github-muted mb-1">เลือกวันที่</label>
                         <select id="input-date" class="w-full bg-github-dark border border-github-border rounded p-2 text-xs text-white focus:border-github-blue focus:outline-none">
@@ -246,8 +246,8 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs text-github-muted mb-1">ยอดรวมของดี (kg) [ช่อง Q]</label>
-                        <input type="number" step="0.01" id="input-good" required placeholder="เช่น 82566.82" class="w-full bg-github-dark border border-github-border rounded p-2 text-xs text-white focus:border-github-blue focus:outline-none">
+                        <label class="block text-xs text-github-muted mb-1">ปริมาณของเสีย (Defect) (kg) [ช่อง R]</label>
+                        <input type="number" step="0.01" id="input-defect" value="0" required placeholder="เช่น 1500.00" class="w-full bg-github-dark border border-github-border rounded p-2 text-xs text-white focus:border-github-blue focus:outline-none">
                     </div>
                 </div>
 
@@ -326,7 +326,8 @@
                     id: day,
                     date: `${day}/8/2026`,
                     machines: new Array(14).fill(0),
-                    good: 0
+                    good: 0,
+                    defect: 0
                 });
             }
             populateDateDropdown();
@@ -368,8 +369,19 @@
 
         function calculateMetrics(item) {
             const totalInput = Array.isArray(item.machines) ? item.machines.reduce((a, b) => a + b, 0) : 0;
-            const defect = totalInput > 0 ? Math.max(0, totalInput - item.good) : 0;
-            const goodPct = totalInput > 0 ? (item.good / totalInput) * 100 : 0;
+            // Determine defect: use explicit defect property if provided, otherwise compute from totalInput - good (or simulate sample defect if good equals totalInput)
+            let defect = 0;
+            if (item.defect !== undefined && item.defect !== null) {
+                defect = item.defect;
+            } else if (totalInput > 0 && item.good !== undefined && item.good > 0) {
+                defect = Math.max(0, totalInput - item.good);
+            } else if (totalInput > 0) {
+                // If good equals totalInput (meaning no defect was recorded in sheets), let's estimate a small realistic sample defect or keep 0 unless defect is set
+                defect = 0;
+            }
+
+            const goodVal = totalInput > 0 ? Math.max(0, totalInput - defect) : 0;
+            const goodPct = totalInput > 0 ? (goodVal / totalInput) * 100 : 0;
             const defectPct = totalInput > 0 ? (defect / totalInput) * 100 : 0;
             
             let status = { text: 'Pending', color: 'text-github-muted', badgeBg: 'bg-github-card' };
@@ -383,7 +395,7 @@
                 }
             }
 
-            return { totalInput, defect, goodPct, defectPct, status };
+            return { totalInput, defect, goodVal, goodPct, defectPct, status };
         }
 
         function updateDashboardStats() {
@@ -394,7 +406,7 @@
             dataset.forEach(d => {
                 const m = calculateMetrics(d);
                 totalInputAll += m.totalInput;
-                totalGoodAll += d.good || 0;
+                totalGoodAll += m.goodVal;
                 totalDefectAll += m.defect;
             });
 
@@ -422,7 +434,7 @@
                         <td class="py-2.5 px-3 font-bold text-white">${item.date}</td>
                         ${machineCells}
                         <td class="py-2.5 px-3 text-github-blue font-bold">${m.totalInput > 0 ? m.totalInput.toLocaleString() : '-'}</td>
-                        <td class="py-2.5 px-3 text-github-green font-semibold">${item.good > 0 ? item.good.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}</td>
+                        <td class="py-2.5 px-3 text-github-green font-semibold">${m.totalInput > 0 ? m.goodVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}</td>
                         <td class="py-2.5 px-3 text-github-green">${m.totalInput > 0 ? m.goodPct.toFixed(2) + '%' : '-'}</td>
                         <td class="py-2.5 px-3 text-github-red font-semibold">${m.totalInput > 0 ? m.defect.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}</td>
                         <td class="py-2.5 px-3 text-github-red">${m.totalInput > 0 ? m.defectPct.toFixed(2) + '%' : '-'}</td>
@@ -439,7 +451,7 @@
         function renderCharts() {
             const activeDays = dataset.filter(d => calculateMetrics(d).totalInput > 0);
             const labels = activeDays.map(d => d.date);
-            const goodData = activeDays.map(d => d.good || 0);
+            const goodData = activeDays.map(d => calculateMetrics(d).goodVal);
             const defectData = activeDays.map(d => calculateMetrics(d).defect);
 
             if (mainChartInstance) mainChartInstance.destroy();
@@ -539,7 +551,7 @@
         function saveDataRecord(event) {
             event.preventDefault();
             const selectedDate = document.getElementById('input-date').value;
-            const goodVal = parseFloat(document.getElementById('input-good').value) || 0;
+            const defectVal = parseFloat(document.getElementById('input-defect').value) || 0;
             
             let machines = [];
             for (let i = 1; i <= 14; i++) {
@@ -549,12 +561,14 @@
             const targetIndex = dataset.findIndex(d => d.date === selectedDate);
             if (targetIndex !== -1) {
                 dataset[targetIndex].machines = machines;
-                dataset[targetIndex].good = goodVal;
+                dataset[targetIndex].defect = defectVal;
+                const totalIn = machines.reduce((a,b)=>a+b, 0);
+                dataset[targetIndex].good = Math.max(0, totalIn - defectVal);
             }
 
             refreshAll();
             closeAddModal();
-            showToast('บันทึกและอัปเดตข้อมูลในหน้าจอสำเร็จ!');
+            showToast('บันทึกและอัปเดตข้อมูลของเสียสำเร็จ!');
         }
 
         function filterMatrixTable() {
