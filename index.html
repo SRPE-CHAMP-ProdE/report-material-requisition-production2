@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub QC Dashboard & Machine Matrix (สค. 69 - EXT-01 ถึง EXT-14)</title>
+    <title>GitHub QC Dashboard & Machine Matrix (เลือกเดือนตาม Google Sheets Tabs)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -34,7 +34,7 @@
 </head>
 <body class="bg-github-dark text-github-text min-h-screen font-sans antialiased selection:bg-github-blue selection:text-white">
 
-    <header class="border-b border-github-border bg-github-dark sticky top-0 z-50 px-4 lg:px-8 py-3 flex items-center justify-between">
+    <header class="border-b border-github-border bg-github-dark sticky top-0 z-50 px-4 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center space-x-3">
             <svg class="h-8 w-8 text-github-text" viewBox="0 0 16 16" fill="currentColor">
                 <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.22 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
@@ -43,22 +43,28 @@
                 <span class="text-github-blue font-medium hover:underline cursor-pointer">sr-pe-group</span>
                 <span class="text-github-muted">/</span>
                 <span class="font-bold text-white hover:underline cursor-pointer">report-material-requisition-ext1-14</span>
-                <span class="ml-2 px-2 py-0.5 text-xs font-medium bg-github-card border border-github-border rounded-full text-github-muted">สค. 2569 (Live Sheets)</span>
             </div>
         </div>
         
         <div class="flex items-center space-x-3">
+            <!-- Sheet / Month Selector Dropdown -->
+            <div class="flex items-center space-x-1.5 bg-github-card border border-github-border rounded-md px-3 py-1 text-xs">
+                <span class="text-github-muted">เลือกเดือน:</span>
+                <select id="sheet-selector" onchange="changeSheet(this.value)" class="bg-github-dark text-white border border-github-border rounded px-2 py-1 text-xs focus:outline-none focus:border-github-blue font-medium cursor-pointer">
+                    <option value="Jul,26">กรกฎาคม 2569 (Jul,26)</option>
+                    <option value="AUG,26" selected>สิงหาคม 2569 (AUG,26)</option>
+                    <option value="SEP,26">กันยายน 2569 (SEP,26)</option>
+                </select>
+            </div>
+
             <div class="hidden sm:flex items-center space-x-1 bg-github-card border border-github-border rounded-md px-3 py-1 text-xs">
                 <span id="connection-status-dot" class="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse mr-1"></span>
-                <span id="connection-status-text" class="text-github-text font-medium">Connecting to Google Sheets...</span>
+                <span id="connection-status-text" class="text-github-text font-medium">Connecting...</span>
             </div>
+            
             <button onclick="fetchLiveData()" class="flex items-center space-x-1.5 bg-github-card border border-github-border hover:bg-github-hover text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors shadow-sm" title="รีเฟรชข้อมูลล่าสุด">
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                <span>รีเฟรชข้อมูล</span>
-            </button>
-            <button onclick="openAddModal()" class="flex items-center space-x-1.5 bg-github-blue hover:bg-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors shadow-sm">
-                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                <span>เพิ่ม/แก้ไขข้อมูลรายวัน</span>
+                <span>รีเฟรช</span>
             </button>
         </div>
     </header>
@@ -86,7 +92,7 @@
                     <span class="text-2xl font-bold text-white" id="stat-total-input">0</span>
                     <span class="text-xs text-github-green font-medium">kg</span>
                 </div>
-                <p class="text-xs text-github-muted mt-1">ผลรวมรายวัน (สค. 2569)</p>
+                <p class="text-xs text-github-muted mt-1" id="label-stat-month">ผลรวมรายเดือน</p>
             </div>
 
             <div class="bg-github-card border border-github-border rounded-lg p-4 shadow-sm hover:border-github-muted transition-all">
@@ -122,20 +128,19 @@
                     <span class="text-2xl font-bold text-white">14</span>
                     <span class="text-xs text-github-blue font-medium">EXT-01 ถึง EXT-14</span>
                 </div>
-                <p class="text-xs text-github-muted mt-1">สายการผลิต สค. 2569</p>
+                <p class="text-xs text-github-muted mt-1">สายการผลิตประจำเดือน</p>
             </div>
         </div>
 
         <div id="view-overview" class="space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Full-width main chart -->
                 <div class="lg:col-span-3 bg-github-card border border-github-border rounded-lg p-5 shadow-sm">
                     <div class="flex items-center justify-between pb-4 mb-4 border-b border-github-border">
                         <div class="flex items-center space-x-2">
                             <i data-lucide="bar-chart-3" class="w-5 h-5 text-github-blue"></i>
-                            <h3 class="font-semibold text-white text-sm">กราฟแสดงผลรายวัน (แท่งที่ 1 สีฟ้า: ยอดรวม/วัน | แท่งที่ 2: สัดส่วนของดีสีเขียว & ของเสียสีแดง ในแท่งเดียวกัน)</h3>
+                            <h3 class="font-semibold text-white text-sm">กราฟแสดงผลรายวัน (แท่งที่ 1 สีฟ้า: ยอดรวม/วัน | แท่งที่ 2: สัดส่วนของดีสีเขียว & ของเสียสีแดง)</h3>
                         </div>
-                        <span class="text-xs text-github-muted bg-github-dark px-2 py-1 border border-github-border rounded">สค. 2569</span>
+                        <span class="text-xs text-github-muted bg-github-dark px-2 py-1 border border-github-border rounded" id="chart-month-badge">AUG,26</span>
                     </div>
                     <div class="relative h-[420px] w-full">
                         <canvas id="mainChart"></canvas>
@@ -143,12 +148,11 @@
                 </div>
             </div>
 
-            <!-- Heatmap section -->
             <div class="bg-github-card border border-github-border rounded-lg p-5 shadow-sm">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center space-x-2">
                         <i data-lucide="calendar" class="w-5 h-5 text-github-green"></i>
-                        <h3 class="font-semibold text-white text-sm">Quality Status Heatmap (สิงหาคม 2569) - เกณฑ์สถานะคุณภาพ</h3>
+                        <h3 class="font-semibold text-white text-sm">Quality Status Heatmap - เกณฑ์สถานะคุณภาพประจำเดือน</h3>
                     </div>
                     <div class="flex items-center space-x-3 text-xs">
                         <span class="flex items-center space-x-1"><span class="w-3 h-3 bg-[#39d353] rounded-sm inline-block"></span><span>Good (&lt;7%)</span></span>
@@ -169,7 +173,7 @@
                 <div class="p-4 bg-github-dark border-b border-github-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div class="flex items-center space-x-2">
                         <i data-lucide="file-spreadsheet" class="w-5 h-5 text-github-green"></i>
-                        <h3 class="font-semibold text-white text-sm">รายงานการเบิกเม็ด แยกตามเครื่องจักร (ประจำเดือน สิงหาคม 2569 - Google Sheets)</h3>
+                        <h3 class="font-semibold text-white text-sm">รายงานการเบิกเม็ด แยกตามเครื่องจักร (Google Sheets View)</h3>
                     </div>
                     <div class="flex items-center space-x-2 w-full sm:w-auto">
                         <input type="text" id="search-matrix" onkeyup="filterMatrixTable()" placeholder="ค้นหาวันที่..." class="bg-github-card border border-github-border rounded-md px-3 py-1 text-xs text-github-text w-full sm:w-64 focus:outline-none focus:border-github-blue">
@@ -201,6 +205,7 @@
                                 <th class="py-3 px-3 text-github-red font-bold">ของเสีย</th>
                                 <th class="py-3 px-3 text-github-red">คิดเป็น %</th>
                                 <th class="py-3 px-3">สถานะ</th>
+                                <th class="py-3 px-3 text-github-blue">หมายเหตุ / คอมเม้นต์</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-github-border font-mono text-[11px]" id="matrix-tbody">
@@ -213,61 +218,6 @@
 
     </main>
 
-    <div id="data-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-github-card border border-github-border rounded-lg max-w-3xl w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
-            <div class="flex items-center justify-between border-b border-github-border pb-3">
-                <h3 class="font-bold text-white text-base flex items-center space-x-2">
-                    <i data-lucide="plus-circle" class="w-5 h-5 text-github-blue"></i>
-                    <span>บันทึก/แก้ไขข้อมูลรายวัน (สค. 2569)</span>
-                </h3>
-                <button onclick="closeAddModal()" class="text-github-muted hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-            
-            <form id="qc-form" onsubmit="saveDataRecord(event)" class="space-y-4">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs text-github-muted mb-1">เลือกวันที่</label>
-                        <select id="input-date" class="w-full bg-github-dark border border-github-border rounded p-2 text-xs text-white focus:border-github-blue focus:outline-none">
-                            <!-- populated dates -->
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-github-muted mb-1">ปริมาณของเสีย (Defect) (kg) [ช่อง S]</label>
-                        <input type="number" step="0.01" id="input-defect" value="0" required placeholder="เช่น 1500.00" class="w-full bg-github-dark border border-github-border rounded p-2 text-xs text-white focus:border-github-blue focus:outline-none">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs text-github-muted mb-1">คอมเม้นต์ / หมายเหตุประจำวัน (แสดงเมื่อชี้ที่กราฟ)</label>
-                    <textarea id="input-comment" rows="2" placeholder="เช่น เครื่อง EXT-04 ฮีตเตอร์ขัดข้อง เปลี่ยนอะไหล่ช่วงบ่าย..." class="w-full bg-github-dark border border-github-border rounded p-2 text-xs text-white focus:border-github-blue focus:outline-none"></textarea>
-                </div>
-
-                <div>
-                    <label class="block text-xs text-github-muted mb-2 font-semibold text-github-blue">จำนวนเม็ดที่เบิกแยกตามเครื่องจักร EXT-01 ถึง EXT-14 (kg)</label>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
-                        <script>
-                            let inputsHTML = '';
-                            for(let i=1; i<=14; i++) {
-                                inputsHTML += `
-                                    <div>
-                                        <label class="text-[10px] text-github-muted">EXT-${i.toString().padStart(2, '0')}</label>
-                                        <input type="number" step="0.01" id="ext-${i}" value="0" class="w-full bg-github-dark border border-github-border rounded p-1.5 text-xs text-white machine-input">
-                                    </div>
-                                `;
-                            }
-                            document.write(inputsHTML);
-                        </script>
-                    </div>
-                </div>
-
-                <div class="flex justify-end space-x-3 pt-4 border-t border-github-border">
-                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 rounded text-xs bg-github-dark border border-github-border hover:bg-github-hover text-white">ยกเลิก</button>
-                    <button type="submit" class="px-4 py-2 rounded text-xs bg-github-green hover:bg-github-greenBg text-white font-semibold">บันทึกข้อมูล</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- Notification Toast -->
     <div id="toast" class="fixed bottom-5 right-5 bg-github-card border border-github-border text-white px-4 py-3 rounded-lg shadow-2xl z-50 transform translate-y-20 opacity-0 transition-all duration-300 flex items-center space-x-2">
         <i data-lucide="check-circle" class="w-4 h-4 text-github-green"></i>
@@ -277,10 +227,17 @@
     <script>
         lucide.createIcons();
 
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxLqVVUENsURyMUoJexxReyCIwWBRuM1kbbpsXOu1KRZqubfYVmQr7zMBkRtNI49Jk-dw/exec?sheet=AUG,26';
+        let currentSheet = 'AUG,26';
         let dataset = [];
 
         const thaiMonths = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+        function changeSheet(sheetName) {
+            currentSheet = sheetName;
+            document.getElementById('chart-month-badge').innerText = sheetName;
+            document.getElementById('label-stat-month').innerText = `ผลรวมรายเดือน (${sheetName})`;
+            fetchLiveData();
+        }
 
         function formatThaiDate(dateInput) {
             let d;
@@ -322,7 +279,9 @@
             const statusText = document.getElementById('connection-status-text');
             
             statusDot.className = "inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse mr-1";
-            statusText.innerText = "Connecting to Google Sheets...";
+            statusText.innerText = `Connecting (${currentSheet})...`;
+
+            const SCRIPT_URL = `https://script.google.com/macros/s/AKfycbxLqVVUENsURyMUoJexxReyCIwWBRuM1kbbpsXOu1KRZqubfYVmQr7zMBkRtNI49Jk-dw/exec?sheet=${currentSheet}`;
 
             try {
                 const response = await fetch(SCRIPT_URL);
@@ -331,12 +290,11 @@
                 if (Array.isArray(result) && result.length > 0) {
                     dataset = normalizeDataset(result);
                     statusDot.className = "inline-block w-2 h-2 rounded-full bg-github-green mr-1";
-                    statusText.innerText = "Google Sheets Live Connected";
-                    populateDateDropdown();
+                    statusText.innerText = `Connected (${currentSheet})`;
                     refreshAll();
-                    showToast('โหลดข้อมูลจาก Google Sheets สำเร็จ!');
+                    showToast(`โหลดข้อมูลเดือน ${currentSheet} สำเร็จ!`);
                 } else {
-                    throw new Error("Invalid data format");
+                    throw new Error("Invalid data format or empty sheet");
                 }
             } catch (error) {
                 console.error("Fetch error:", error);
@@ -360,10 +318,7 @@
                 if (day % 7 === 0) defectPct = (Math.random() * 8) + 12; 
                 defect = parseFloat((totalIn * (defectPct / 100)).toFixed(2));
 
-                let sampleComment = "";
-                if (day === 5) sampleComment = "EXT-03 อุณหภูมิความร้อนสูงกว่าปกติ ล้างสกรูด่วน";
-                if (day === 12) sampleComment = "เปลี่ยนเกรดเม็ดพลาสติก รอบเช้าของเสียสูงขึ้นเล็กน้อย";
-                if (day === 20) sampleComment = "หยุดเครื่องทำความสะอาดประจำสัปดาห์ 2 ชั่วโมง";
+                let sampleComment = day === 5 ? "เครื่องทำงานปกติ ตรวจสอบอุณหภูมิสม่ำเสมอ" : "";
 
                 rawData.push({
                     id: day,
@@ -374,19 +329,7 @@
                 });
             }
             dataset = normalizeDataset(rawData);
-            populateDateDropdown();
             refreshAll();
-        }
-
-        function populateDateDropdown() {
-            const dateSelect = document.getElementById('input-date');
-            dateSelect.innerHTML = '';
-            dataset.forEach(d => {
-                const opt = document.createElement('option');
-                opt.value = d.date;
-                opt.innerText = d.date;
-                dateSelect.appendChild(opt);
-            });
         }
 
         let mainChartInstance = null;
@@ -480,6 +423,7 @@
                         <td class="py-2.5 px-3">
                             <span class="px-2 py-0.5 rounded text-[10px] ${m.status.badgeBg} ${m.status.color}">${m.status.text}</span>
                         </td>
+                        <td class="py-2.5 px-3 text-github-muted text-[11px] max-w-xs truncate" title="${item.comment || ''}">${item.comment ? '📝 ' + item.comment : '-'}</td>
                     </tr>
                 `;
                 tbody.innerHTML += row;
@@ -581,7 +525,7 @@
             heatmapGrid.innerHTML = '';
             for (let i = 0; i < dataset.length; i++) {
                 let cellColor = 'bg-[#161b22] border border-github-border';
-                let titleText = `วันที่ ${i+1} สิงหาคม: ยังไม่มีข้อมูล`;
+                let titleText = `วันที่ ${i+1}: ยังไม่มีข้อมูล`;
                 
                 const matched = dataset[i];
                 if (matched) {
@@ -601,37 +545,6 @@
                 }
                 heatmapGrid.innerHTML += `<div class="w-3.5 h-3.5 rounded-sm ${cellColor} cursor-pointer hover:ring-1 hover:ring-white transition-all" title="${titleText}"></div>`;
             }
-        }
-
-        function openAddModal() {
-            document.getElementById('data-modal').classList.remove('hidden');
-        }
-
-        function closeAddModal() {
-            document.getElementById('data-modal').classList.add('hidden');
-        }
-
-        function saveDataRecord(event) {
-            event.preventDefault();
-            const selectedDate = document.getElementById('input-date').value;
-            const defectVal = parseFloat(document.getElementById('input-defect').value) || 0;
-            const commentVal = document.getElementById('input-comment').value.trim();
-            
-            let machines = [];
-            for (let i = 1; i <= 14; i++) {
-                machines.push(parseFloat(document.getElementById(`ext-${i}`).value) || 0);
-            }
-
-            const targetIndex = dataset.findIndex(d => d.date === selectedDate);
-            if (targetIndex !== -1) {
-                dataset[targetIndex].machines = machines;
-                dataset[targetIndex].defect = defectVal;
-                dataset[targetIndex].comment = commentVal;
-            }
-
-            refreshAll();
-            closeAddModal();
-            showToast('บันทึกและอัปเดตข้อมูลสำเร็จ!');
         }
 
         function filterMatrixTable() {
