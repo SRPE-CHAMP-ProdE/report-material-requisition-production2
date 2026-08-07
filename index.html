@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub QC Dashboard & Machine Matrix (เลือกเดือนตาม Google Sheets Tabs)</title>
+    <title>GitHub QC Dashboard & Machine Matrix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -133,22 +133,22 @@
         </div>
 
         <div id="view-overview" class="space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-3 bg-github-card border border-github-border rounded-lg p-5 shadow-sm">
-                    <div class="flex items-center justify-between pb-4 mb-4 border-b border-github-border">
-                        <div class="flex items-center space-x-2">
-                            <i data-lucide="bar-chart-3" class="w-5 h-5 text-github-blue"></i>
-                            <h3 class="font-semibold text-white text-sm">กราฟแสดงผลรายวัน (แท่งที่ 1 สีฟ้า: ยอดรวม/วัน | แท่งที่ 2: สัดส่วนของดีสีเขียว & ของเสียสีแดง)</h3>
-                        </div>
-                        <span class="text-xs text-github-muted bg-github-dark px-2 py-1 border border-github-border rounded" id="chart-month-badge">AUG,26</span>
+            <!-- Full Width Chart Container -->
+            <div class="bg-github-card border border-github-border rounded-lg p-5 shadow-sm w-full">
+                <div class="flex items-center justify-between pb-4 mb-4 border-b border-github-border">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="bar-chart-3" class="w-5 h-5 text-github-blue"></i>
+                        <h3 class="font-semibold text-white text-sm">กราฟแสดงผลรายวัน (แท่งที่ 1 สีฟ้า: ยอดรวม/วัน | แท่งที่ 2: สัดส่วนของดีสีเขียว & ของเสียสีแดง)</h3>
                     </div>
-                    <div class="relative h-[420px] w-full">
-                        <canvas id="mainChart"></canvas>
-                    </div>
+                    <span class="text-xs text-github-muted bg-github-dark px-2 py-1 border border-github-border rounded" id="chart-month-badge">AUG,26</span>
+                </div>
+                <div class="relative h-[480px] w-full">
+                    <canvas id="mainChart"></canvas>
                 </div>
             </div>
 
-            <div class="bg-github-card border border-github-border rounded-lg p-5 shadow-sm">
+            <!-- Full Width Heatmap Container Placed Below Chart -->
+            <div class="bg-github-card border border-github-border rounded-lg p-5 shadow-sm w-full">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center space-x-2">
                         <i data-lucide="calendar" class="w-5 h-5 text-github-green"></i>
@@ -360,7 +360,6 @@
                 matrixView.classList.add('hidden');
             } else {
                 matrixBtn.className = "pb-3 border-b-2 border-github-blue text-white flex items-center space-x-2 transition-colors";
-                overviewView.className = "pb-3 border-b-2 border-transparent text-github-muted hover:text-white flex items-center space-x-2 transition-colors hidden";
                 matrixView.classList.remove('hidden');
                 overviewView.classList.add('hidden');
             }
