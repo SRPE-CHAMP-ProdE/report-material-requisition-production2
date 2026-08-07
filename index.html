@@ -451,6 +451,50 @@
             if (mainChartInstance) mainChartInstance.destroy();
             const ctxMain = document.getElementById('mainChart').getContext('2d');
             
+            // Custom Plugin สำหรับวาดเปอร์เซ็นต์ของดีและของเสียบนแท่งกราฟ
+            const percentagePlugin = {
+                id: 'percentagePlugin',
+                afterDatasetsDraw(chart) {
+                    const { ctx } = chart;
+                    ctx.save();
+                    ctx.font = 'bold 10px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+
+                    const metaGood = chart.getDatasetMeta(1);   // ยอดของดี (index 1)
+                    const metaDefect = chart.getDatasetMeta(2); // ของเสีย (index 2)
+
+                    metaGood.data.forEach((bar, index) => {
+                        const totalInput = totalInputData[index];
+                        const goodVal = goodData[index];
+                        const defectVal = defectData[index];
+
+                        if (totalInput > 0) {
+                            // 1. วาด % ดี (กึ่งกลางแท่งสีเขียว)
+                            if (bar && goodVal > 0) {
+                                const goodPct = ((goodVal / totalInput) * 100).toFixed(1);
+                                const xPos = bar.x;
+                                const yPos = (bar.base + bar.y) / 2;
+                                
+                                ctx.fillStyle = '#ffffff'; // ตัวหนังสือสีขาว
+                                ctx.fillText(`${goodPct}%`, xPos, yPos);
+                            }
+
+                            // 2. วาด % เสีย (เหนือแท่งสีแดง)
+                            const defectBar = metaDefect.data[index];
+                            if (defectBar && defectVal > 0) {
+                                const defectPct = ((defectVal / totalInput) * 100).toFixed(1);
+                                const xPos = defectBar.x;
+                                const yPos = Math.max(20, defectBar.y - 10);
+                                
+                                ctx.fillStyle = '#ffffff'; // ตัวหนังสือสีขาวเหมือนกัน
+                                ctx.fillText(`${defectPct}%`, xPos, yPos);
+                            }
+                        }
+                    });
+                    ctx.restore();
+                }
+            };
+
             const chartConfig = {
                 type: 'bar',
                 data: {
@@ -482,10 +526,6 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { labels: { color: '#c9d1d9', font: { size: 11 } } },
-                        tooltip: { backgroundColor: '#161b22', titleColor: '#fff', bodyColor: '#c9d1d9', borderColor: '#30363d', borderWidth: 1 }
-                    },
                     scales: {
                         x: { 
                             stacked: false, 
@@ -497,8 +537,13 @@
                             grid: { color: '#30363d' }, 
                             ticks: { color: '#8b949e' } 
                         }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#c9d1d9', font: { size: 11 } } },
+                        tooltip: { backgroundColor: '#161b22', titleColor: '#fff', bodyColor: '#c9d1d9', borderColor: '#30363d', borderWidth: 1 }
                     }
-                }
+                },
+                plugins: [percentagePlugin]
             };
 
             mainChartInstance = new Chart(ctxMain, chartConfig);
