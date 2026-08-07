@@ -238,6 +238,11 @@
                 </div>
 
                 <div>
+                    <label class="block text-xs text-github-muted mb-1">คอมเม้นต์ / หมายเหตุประจำวัน (แสดงเมื่อชี้ที่กราฟ)</label>
+                    <textarea id="input-comment" rows="2" placeholder="เช่น เครื่อง EXT-04 ฮีตเตอร์ขัดข้อง เปลี่ยนอะไหล่ช่วงบ่าย..." class="w-full bg-github-dark border border-github-border rounded p-2 text-xs text-white focus:border-github-blue focus:outline-none"></textarea>
+                </div>
+
+                <div>
                     <label class="block text-xs text-github-muted mb-2 font-semibold text-github-blue">จำนวนเม็ดที่เบิกแยกตามเครื่องจักร EXT-01 ถึง EXT-14 (kg)</label>
                     <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
                         <script>
@@ -275,6 +280,43 @@
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxLqVVUENsURyMUoJexxReyCIwWBRuM1kbbpsXOu1KRZqubfYVmQr7zMBkRtNI49Jk-dw/exec?sheet=AUG,26';
         let dataset = [];
 
+        const thaiMonths = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+        function formatThaiDate(dateInput) {
+            let d;
+            if (dateInput instanceof Date) {
+                d = dateInput;
+            } else if (typeof dateInput === 'string') {
+                let parts = dateInput.split(/[\/\-\.]/);
+                if (parts.length === 3) {
+                    if (parts[0].length === 4) {
+                        d = new Date(parts[0], parts[1]-1, parts[2]);
+                    } else {
+                        d = new Date(parts[2], parts[1]-1, parts[0]);
+                    }
+                } else {
+                    d = new Date(dateInput);
+                }
+            }
+            if (d && !isNaN(d.getTime())) {
+                let day = String(d.getDate()).padStart(2, '0');
+                let month = d.getMonth() + 1;
+                let year = d.getFullYear();
+                if (year < 2400) year += 543;
+                return `${day} ${thaiMonths[month]} ${year}`;
+            }
+            return dateInput;
+        }
+
+        function normalizeDataset(data) {
+            return data.map(item => {
+                return { 
+                    ...item, 
+                    date: formatThaiDate(item.date) 
+                };
+            });
+        }
+
         async function fetchLiveData() {
             const statusDot = document.getElementById('connection-status-dot');
             const statusText = document.getElementById('connection-status-text');
@@ -287,7 +329,7 @@
                 const result = await response.json();
                 
                 if (Array.isArray(result) && result.length > 0) {
-                    dataset = result;
+                    dataset = normalizeDataset(result);
                     statusDot.className = "inline-block w-2 h-2 rounded-full bg-github-green mr-1";
                     statusText.innerText = "Google Sheets Live Connected";
                     populateDateDropdown();
@@ -305,28 +347,33 @@
         }
 
         function initFallbackData() {
-            dataset = [];
+            let rawData = [];
             for (let day = 1; day <= 31; day++) {
+                let dayStr = day < 10 ? '0' + day : String(day);
                 let machines = new Array(14).fill(0);
                 let defect = 0;
-                if (day <= 5) {
-                    for(let m=0; m<14; m++) {
-                        machines[m] = Math.floor(Math.random() * 1500) + 800;
-                    }
-                    const totalIn = machines.reduce((a,b)=>a+b, 0);
-                    if (day === 1) defect = totalIn * 0.0343;
-                    else if (day === 2) defect = totalIn * 0.2955;
-                    else if (day === 3) defect = totalIn * 0.1551;
-                    else if (day === 4) defect = totalIn * 0.2385;
-                    else if (day === 5) defect = totalIn * 0.1224;
+                for(let m=0; m<14; m++) {
+                    machines[m] = Math.floor(Math.random() * 1200) + 800;
                 }
-                dataset.push({
+                const totalIn = machines.reduce((a,b)=>a+b, 0);
+                let defectPct = (Math.random() * 14) + 3; 
+                if (day % 7 === 0) defectPct = (Math.random() * 8) + 12; 
+                defect = parseFloat((totalIn * (defectPct / 100)).toFixed(2));
+
+                let sampleComment = "";
+                if (day === 5) sampleComment = "EXT-03 อุณหภูมิความร้อนสูงกว่าปกติ ล้างสกรูด่วน";
+                if (day === 12) sampleComment = "เปลี่ยนเกรดเม็ดพลาสติก รอบเช้าของเสียสูงขึ้นเล็กน้อย";
+                if (day === 20) sampleComment = "หยุดเครื่องทำความสะอาดประจำสัปดาห์ 2 ชั่วโมง";
+
+                rawData.push({
                     id: day,
-                    date: `${day}/8/2026`,
+                    date: `${dayStr}/8/2026`,
                     machines: machines,
-                    defect: parseFloat(defect.toFixed(2))
+                    defect: defect,
+                    comment: sampleComment
                 });
             }
+            dataset = normalizeDataset(rawData);
             populateDateDropdown();
             refreshAll();
         }
@@ -441,7 +488,6 @@
         }
 
         function renderCharts() {
-            // แสดงเฉพาะวันที่มีการบันทึกข้อมูล (totalInput > 0)
             const activeDays = dataset.filter(d => calculateMetrics(d).totalInput > 0);
             const labels = activeDays.map(d => d.date);
             const totalInputData = activeDays.map(d => calculateMetrics(d).totalInput);
@@ -451,7 +497,6 @@
             if (mainChartInstance) mainChartInstance.destroy();
             const ctxMain = document.getElementById('mainChart').getContext('2d');
             
-            // Custom Plugin สำหรับวาดเปอร์เซ็นต์ของดีและของเสียบนแท่งกราฟ
             const percentagePlugin = {
                 id: 'percentagePlugin',
                 afterDatasetsDraw(chart) {
@@ -460,8 +505,8 @@
                     ctx.font = 'bold 10px Inter, sans-serif';
                     ctx.textAlign = 'center';
 
-                    const metaGood = chart.getDatasetMeta(1);   // ยอดของดี (index 1)
-                    const metaDefect = chart.getDatasetMeta(2); // ของเสีย (index 2)
+                    const metaGood = chart.getDatasetMeta(1);   
+                    const metaDefect = chart.getDatasetMeta(2); 
 
                     metaGood.data.forEach((bar, index) => {
                         const totalInput = totalInputData[index];
@@ -469,25 +514,17 @@
                         const defectVal = defectData[index];
 
                         if (totalInput > 0) {
-                            // 1. วาด % ดี (กึ่งกลางแท่งสีเขียว)
                             if (bar && goodVal > 0) {
                                 const goodPct = ((goodVal / totalInput) * 100).toFixed(1);
-                                const xPos = bar.x;
-                                const yPos = (bar.base + bar.y) / 2;
-                                
-                                ctx.fillStyle = '#ffffff'; // ตัวหนังสือสีขาว
-                                ctx.fillText(`${goodPct}%`, xPos, yPos);
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fillText(`${goodPct}%`, bar.x, (bar.base + bar.y) / 2);
                             }
 
-                            // 2. วาด % เสีย (เหนือแท่งสีแดง)
                             const defectBar = metaDefect.data[index];
                             if (defectBar && defectVal > 0) {
                                 const defectPct = ((defectVal / totalInput) * 100).toFixed(1);
-                                const xPos = defectBar.x;
-                                const yPos = Math.max(20, defectBar.y - 10);
-                                
-                                ctx.fillStyle = '#ffffff'; // ตัวหนังสือสีขาวเหมือนกัน
-                                ctx.fillText(`${defectPct}%`, xPos, yPos);
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fillText(`${defectPct}%`, defectBar.x, Math.max(20, defectBar.y - 10));
                             }
                         }
                     });
@@ -500,47 +537,37 @@
                 data: {
                     labels: labels,
                     datasets: [
-                        { 
-                            label: 'ยอดรวม/วัน (Total Input)', 
-                            data: totalInputData, 
-                            backgroundColor: '#58a6ff', 
-                            borderRadius: 4,
-                            stack: 'stack-total'
-                        },
-                        { 
-                            label: 'ยอดของดี (Good)', 
-                            data: goodData, 
-                            backgroundColor: '#2ea043', 
-                            borderRadius: 4,
-                            stack: 'stack-quality'
-                        },
-                        { 
-                            label: 'ของเสีย (Defect)', 
-                            data: defectData, 
-                            backgroundColor: '#f85149', 
-                            borderRadius: 4,
-                            stack: 'stack-quality'
-                        }
+                        { label: 'ยอดรวม/วัน (Total Input)', data: totalInputData, backgroundColor: '#58a6ff', borderRadius: 4, stack: 'stack-total' },
+                        { label: 'ยอดของดี (Good)', data: goodData, backgroundColor: '#2ea043', borderRadius: 4, stack: 'stack-quality' },
+                        { label: 'ของเสีย (Defect)', data: defectData, backgroundColor: '#f85149', borderRadius: 4, stack: 'stack-quality' }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        x: { 
-                            stacked: false, 
-                            grid: { color: '#30363d' }, 
-                            ticks: { color: '#8b949e', maxRotation: 45, minRotation: 0 } 
-                        },
-                        y: { 
-                            stacked: true, 
-                            grid: { color: '#30363d' }, 
-                            ticks: { color: '#8b949e' } 
-                        }
+                        x: { stacked: false, grid: { color: '#30363d' }, ticks: { color: '#8b949e', maxRotation: 45, minRotation: 0 } },
+                        y: { stacked: true, grid: { color: '#30363d' }, ticks: { color: '#8b949e' } }
                     },
                     plugins: {
                         legend: { labels: { color: '#c9d1d9', font: { size: 11 } } },
-                        tooltip: { backgroundColor: '#161b22', titleColor: '#fff', bodyColor: '#c9d1d9', borderColor: '#30363d', borderWidth: 1 }
+                        tooltip: { 
+                            backgroundColor: '#161b22', 
+                            titleColor: '#fff', 
+                            bodyColor: '#c9d1d9', 
+                            borderColor: '#30363d', 
+                            borderWidth: 1,
+                            callbacks: {
+                                afterBody: function(tooltipItems) {
+                                    const index = tooltipItems[0].dataIndex;
+                                    const activeDay = activeDays[index];
+                                    if (activeDay && activeDay.comment && activeDay.comment.trim() !== "") {
+                                        return `\n📝 หมายเหตุ/คอมเม้นต์:\n${activeDay.comment}`;
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
                     }
                 },
                 plugins: [percentagePlugin]
@@ -588,6 +615,7 @@
             event.preventDefault();
             const selectedDate = document.getElementById('input-date').value;
             const defectVal = parseFloat(document.getElementById('input-defect').value) || 0;
+            const commentVal = document.getElementById('input-comment').value.trim();
             
             let machines = [];
             for (let i = 1; i <= 14; i++) {
@@ -598,6 +626,7 @@
             if (targetIndex !== -1) {
                 dataset[targetIndex].machines = machines;
                 dataset[targetIndex].defect = defectVal;
+                dataset[targetIndex].comment = commentVal;
             }
 
             refreshAll();
@@ -606,8 +635,23 @@
         }
 
         function filterMatrixTable() {
-            const query = document.getElementById('search-matrix').value.toLowerCase();
-            const filtered = dataset.filter(d => String(d.date).toLowerCase().includes(query));
+            const query = document.getElementById('search-matrix').value.toLowerCase().trim();
+            if (!query) {
+                renderMatrixTable(dataset);
+                return;
+            }
+            const filtered = dataset.filter(d => {
+                const dateStr = String(d.date).toLowerCase();
+                let dayNum = parseInt(query, 10);
+                let matchesDay = false;
+                if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31) {
+                    let dayStrFormatted = dayNum < 10 ? '0' + dayNum : '' + dayNum;
+                    if (dateStr.startsWith(dayStrFormatted) || dateStr.startsWith(dayNum + ' ')) {
+                        matchesDay = true;
+                    }
+                }
+                return dateStr.includes(query) || matchesDay;
+            });
             renderMatrixTable(filtered);
         }
 
