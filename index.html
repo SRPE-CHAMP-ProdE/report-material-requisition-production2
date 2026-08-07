@@ -86,7 +86,7 @@
                     <span class="text-2xl font-bold text-white" id="stat-total-input">0</span>
                     <span class="text-xs text-github-green font-medium">kg</span>
                 </div>
-                <p class="text-xs text-github-muted mt-1">สูตร: =SUM(B:O)</p>
+                <p class="text-xs text-github-muted mt-1">ผลรวมรายวัน (สค. 2569)</p>
             </div>
 
             <div class="bg-github-card border border-github-border rounded-lg p-4 shadow-sm hover:border-github-muted transition-all">
@@ -110,7 +110,7 @@
                     <span class="text-2xl font-bold text-github-red" id="stat-total-defect">0</span>
                     <span class="text-xs text-github-red font-medium" id="stat-total-defect-pct">0%</span>
                 </div>
-                <p class="text-xs text-github-muted mt-1">สูตร: = ยอดรวม - ของดี</p>
+                <p class="text-xs text-github-muted mt-1">ผลรวมของเสียจริง (Column S)</p>
             </div>
 
             <div class="bg-github-card border border-github-border rounded-lg p-4 shadow-sm hover:border-github-muted transition-all">
@@ -128,16 +128,16 @@
 
         <div id="view-overview" class="space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Full-width main chart (lg:col-span-3) -->
+                <!-- Full-width main chart -->
                 <div class="lg:col-span-3 bg-github-card border border-github-border rounded-lg p-5 shadow-sm">
                     <div class="flex items-center justify-between pb-4 mb-4 border-b border-github-border">
                         <div class="flex items-center space-x-2">
                             <i data-lucide="bar-chart-3" class="w-5 h-5 text-github-blue"></i>
-                            <h3 class="font-semibold text-white text-sm">กราฟแสดงยอดรวม/วัน (สีฟ้า) และสัดส่วนของดี (สีเขียว) / ของเสีย (สีแดง) รายวัน สค. 69</h3>
+                            <h3 class="font-semibold text-white text-sm">กราฟแสดงผลรายวัน (แท่งที่ 1 สีฟ้า: ยอดรวม/วัน | แท่งที่ 2: สัดส่วนของดีสีเขียว & ของเสียสีแดง ในแท่งเดียวกัน)</h3>
                         </div>
                         <span class="text-xs text-github-muted bg-github-dark px-2 py-1 border border-github-border rounded">สค. 2569</span>
                     </div>
-                    <div class="relative h-96 w-full">
+                    <div class="relative h-[420px] w-full">
                         <canvas id="mainChart"></canvas>
                     </div>
                 </div>
@@ -196,7 +196,7 @@
                                 <th class="py-3 px-3">EXT-13</th>
                                 <th class="py-3 px-3">EXT-14</th>
                                 <th class="py-3 px-3 text-github-blue font-bold">ยอดรวม/วัน</th>
-                                <th class="py-3 px-3 text-github-green font-bold">ยอดรวมของดี</th>
+                                <th class="py-3 px-3 text-github-green font-bold">ยอดของดี</th>
                                 <th class="py-3 px-3 text-github-green">ของดี (%)</th>
                                 <th class="py-3 px-3 text-github-red font-bold">ของเสีย</th>
                                 <th class="py-3 px-3 text-github-red">คิดเป็น %</th>
@@ -228,11 +228,11 @@
                     <div>
                         <label class="block text-xs text-github-muted mb-1">เลือกวันที่</label>
                         <select id="input-date" class="w-full bg-github-dark border border-github-border rounded p-2 text-xs text-white focus:border-github-blue focus:outline-none">
-                            <!-- populated 1-31 aug -->
+                            <!-- populated dates -->
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs text-github-muted mb-1">ปริมาณของเสีย (Defect) (kg) [ช่อง R]</label>
+                        <label class="block text-xs text-github-muted mb-1">ปริมาณของเสีย (Defect) (kg) [ช่อง S]</label>
                         <input type="number" step="0.01" id="input-defect" value="0" required placeholder="เช่น 1500.00" class="w-full bg-github-dark border border-github-border rounded p-2 text-xs text-white focus:border-github-blue focus:outline-none">
                     </div>
                 </div>
@@ -299,7 +299,7 @@
             } catch (error) {
                 console.error("Fetch error:", error);
                 statusDot.className = "inline-block w-2 h-2 rounded-full bg-github-red mr-1";
-                statusText.innerText = "Connection Failed (Using Mock Data with ~7% Examples)";
+                statusText.innerText = "Connection Failed (Using Mock Data)";
                 initFallbackData();
             }
         }
@@ -309,18 +309,16 @@
             for (let day = 1; day <= 31; day++) {
                 let machines = new Array(14).fill(0);
                 let defect = 0;
-                if (day <= 10) {
+                if (day <= 5) {
                     for(let m=0; m<14; m++) {
                         machines[m] = Math.floor(Math.random() * 1500) + 800;
                     }
                     const totalIn = machines.reduce((a,b)=>a+b, 0);
-                    // ตัวอย่างข้อมูลจำลองสำหรับทดสอบเกณฑ์ของเสีย (Good <7%, Warning 7-15%, Critical >15%)
-                    if (day === 1) defect = totalIn * 0.04;      // Good (~4%)
-                    else if (day === 2) defect = totalIn * 0.075;  // Warning (~7.5%)
-                    else if (day === 3) defect = totalIn * 0.16;   // Critical Alert (~16%)
-                    else if (day === 4) defect = totalIn * 0.05;   // Good (~5%)
-                    else if (day === 5) defect = totalIn * 0.07;   // Warning (7% พอดีเป๊ะ)
-                    else defect = totalIn * (Math.random() * 0.08 + 0.03);
+                    if (day === 1) defect = totalIn * 0.0343;
+                    else if (day === 2) defect = totalIn * 0.2955;
+                    else if (day === 3) defect = totalIn * 0.1551;
+                    else if (day === 4) defect = totalIn * 0.2385;
+                    else if (day === 5) defect = totalIn * 0.1224;
                 }
                 dataset.push({
                     id: day,
@@ -442,39 +440,8 @@
             lucide.createIcons();
         }
 
-        // Custom plugin to draw percentage labels on stacked Good & Defect bars
-        const percentagePlugin = {
-            id: 'percentagePlugin',
-            afterDatasetsDraw(chart) {
-                const { ctx } = chart;
-                chart.data.datasets.forEach((dataset, datasetIndex) => {
-                    // Only for Good (index 1) and Defect (index 2)
-                    if (datasetIndex === 1 || datasetIndex === 2) {
-                        const meta = chart.getDatasetMeta(datasetIndex);
-                        meta.data.forEach((bar, index) => {
-                            const activeDaysList = chart._activeDaysList || [];
-                            const item = activeDaysList[index];
-                            if (item) {
-                                const m = calculateMetrics(item);
-                                const totalIn = m.totalInput;
-                                const val = dataset.data[index];
-                                if (totalIn > 0 && val > 0) {
-                                    const pct = ((val / totalIn) * 100).toFixed(1) + '%';
-                                    ctx.fillStyle = '#ffffff';
-                                    ctx.font = 'bold 10px sans-serif';
-                                    ctx.textAlign = 'center';
-                                    ctx.textBaseline = 'middle';
-                                    const { x, y } = bar.tooltipPosition();
-                                    ctx.fillText(pct, x, y);
-                                }
-                            }
-                        });
-                    }
-                });
-            }
-        };
-
         function renderCharts() {
+            // แสดงเฉพาะวันที่มีการบันทึกข้อมูล (totalInput > 0)
             const activeDays = dataset.filter(d => calculateMetrics(d).totalInput > 0);
             const labels = activeDays.map(d => d.date);
             const totalInputData = activeDays.map(d => calculateMetrics(d).totalInput);
@@ -484,7 +451,6 @@
             if (mainChartInstance) mainChartInstance.destroy();
             const ctxMain = document.getElementById('mainChart').getContext('2d');
             
-            // Attach activeDays to chart instance for plugin access
             const chartConfig = {
                 type: 'bar',
                 data: {
@@ -494,21 +460,22 @@
                             label: 'ยอดรวม/วัน (Total Input)', 
                             data: totalInputData, 
                             backgroundColor: '#58a6ff', 
-                            borderRadius: 4 
+                            borderRadius: 4,
+                            stack: 'stack-total'
                         },
                         { 
                             label: 'ยอดของดี (Good)', 
                             data: goodData, 
                             backgroundColor: '#2ea043', 
                             borderRadius: 4,
-                            stack: 'quality'
+                            stack: 'stack-quality'
                         },
                         { 
                             label: 'ของเสีย (Defect)', 
                             data: defectData, 
                             backgroundColor: '#f85149', 
                             borderRadius: 4,
-                            stack: 'quality'
+                            stack: 'stack-quality'
                         }
                     ]
                 },
@@ -520,15 +487,21 @@
                         tooltip: { backgroundColor: '#161b22', titleColor: '#fff', bodyColor: '#c9d1d9', borderColor: '#30363d', borderWidth: 1 }
                     },
                     scales: {
-                        x: { grid: { color: '#30363d' }, ticks: { color: '#8b949e', maxRotation: 45, minRotation: 0 } },
-                        y: { grid: { color: '#30363d' }, ticks: { color: '#8b949e' } }
+                        x: { 
+                            stacked: false, 
+                            grid: { color: '#30363d' }, 
+                            ticks: { color: '#8b949e', maxRotation: 45, minRotation: 0 } 
+                        },
+                        y: { 
+                            stacked: false, 
+                            grid: { color: '#30363d' }, 
+                            ticks: { color: '#8b949e' } 
+                        }
                     }
-                },
-                plugins: [percentagePlugin]
+                }
             };
 
             mainChartInstance = new Chart(ctxMain, chartConfig);
-            mainChartInstance._activeDaysList = activeDays;
         }
 
         function renderHeatmap() {
@@ -580,13 +553,11 @@
             if (targetIndex !== -1) {
                 dataset[targetIndex].machines = machines;
                 dataset[targetIndex].defect = defectVal;
-                const totalIn = machines.reduce((a,b)=>a+b, 0);
-                dataset[targetIndex].good = Math.max(0, totalIn - defectVal);
             }
 
             refreshAll();
             closeAddModal();
-            showToast('บันทึกและอัปเดตข้อมูลของเสียสำเร็จ!');
+            showToast('บันทึกและอัปเดตข้อมูลสำเร็จ!');
         }
 
         function filterMatrixTable() {
