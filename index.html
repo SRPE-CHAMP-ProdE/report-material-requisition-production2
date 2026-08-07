@@ -239,37 +239,48 @@
             fetchLiveData();
         }
 
-        function formatThaiDate(dateInput) {
-            let d;
-            if (dateInput instanceof Date) {
-                d = dateInput;
-            } else if (typeof dateInput === 'string') {
-                let parts = dateInput.split(/[\/\-\.]/);
+        function getSheetMonthYear() {
+            let sheetName = currentSheet.toLowerCase();
+            let monthMap = {
+                'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+                'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6
+            };
+            let parts = sheetName.split(',');
+            let mStr = parts[0].trim();
+            let month = monthMap[mStr] || 8;
+            let year = 2026;
+            if (parts[1]) {
+                let y = parseInt(parts[1].trim(), 10);
+                year = y < 100 ? 2000 + y : y;
+            }
+            return { month, year };
+        }
+
+        function formatThaiDate(dateInput, itemIndex = 0) {
+            let { month, year } = getSheetMonthYear();
+            let day = itemIndex + 1;
+            
+            if (typeof dateInput === 'string' && dateInput.includes('/')) {
+                let parts = dateInput.split('/');
                 if (parts.length === 3) {
-                    if (parts[0].length === 4) {
-                        d = new Date(parts[0], parts[1]-1, parts[2]);
-                    } else {
-                        d = new Date(parts[2], parts[1]-1, parts[0]);
-                    }
-                } else {
-                    d = new Date(dateInput);
+                    let d = parseInt(parts[0], 10);
+                    if (!isNaN(d)) day = d;
                 }
+            } else if (dateInput instanceof Date && !isNaN(dateInput.getTime())) {
+                day = dateInput.getDate();
             }
-            if (d && !isNaN(d.getTime())) {
-                let day = String(d.getDate()).padStart(2, '0');
-                let month = d.getMonth() + 1;
-                let year = d.getFullYear();
-                if (year < 2400) year += 543;
-                return `${day} ${thaiMonths[month]} ${year}`;
-            }
-            return dateInput;
+
+            let dayStr = String(day).padStart(2, '0');
+            let thaiMonthName = thaiMonths[month];
+            let thaiYear = year < 2400 ? year + 543 : year;
+            return `${dayStr} ${thaiMonthName} ${thaiYear}`;
         }
 
         function normalizeDataset(data) {
-            return data.map(item => {
+            return data.map((item, index) => {
                 return { 
                     ...item, 
-                    date: formatThaiDate(item.date) 
+                    date: formatThaiDate(item.date, index) 
                 };
             });
         }
@@ -305,8 +316,10 @@
         }
 
         function initFallbackData() {
+            let { month, year } = getSheetMonthYear();
+            let maxDays = new Date(year, month, 0).getDate();
             let rawData = [];
-            for (let day = 1; day <= 31; day++) {
+            for (let day = 1; day <= maxDays; day++) {
                 let dayStr = day < 10 ? '0' + day : String(day);
                 let machines = new Array(14).fill(0);
                 let defect = 0;
@@ -322,7 +335,7 @@
 
                 rawData.push({
                     id: day,
-                    date: `${dayStr}/8/2026`,
+                    date: `${dayStr}/${month}/${year}`,
                     machines: machines,
                     defect: defect,
                     comment: sampleComment
