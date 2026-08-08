@@ -449,6 +449,7 @@
             const totalInputData = activeDays.map(d => calculateMetrics(d).totalInput);
             const goodData = activeDays.map(d => calculateMetrics(d).goodVal);
             const defectData = activeDays.map(d => calculateMetrics(d).defect);
+            const kpiTargetData = new Array(labels.length).fill(85000); // KPI 85 ตัน = 85,000 kg
 
             if (mainChartInstance) mainChartInstance.destroy();
             const ctxMain = document.getElementById('mainChart').getContext('2d');
@@ -495,7 +496,18 @@
                     datasets: [
                         { label: 'ยอดรวม/วัน (Total Input)', data: totalInputData, backgroundColor: '#58a6ff', borderRadius: 4, stack: 'stack-total' },
                         { label: 'ยอดของดี (Good)', data: goodData, backgroundColor: '#2ea043', borderRadius: 4, stack: 'stack-quality' },
-                        { label: 'ของเสีย (Defect)', data: defectData, backgroundColor: '#f85149', borderRadius: 4, stack: 'stack-quality' }
+                        { label: 'ของเสีย (Defect)', data: defectData, backgroundColor: '#f85149', borderRadius: 4, stack: 'stack-quality' },
+                        { 
+                            label: 'KPI Target (85 ตัน / 85,000 kg)', 
+                            data: kpiTargetData, 
+                            type: 'line', 
+                            borderColor: '#f0883e', 
+                            borderWidth: 2.5, 
+                            borderDash: [6, 6], 
+                            pointRadius: 0, 
+                            fill: false,
+                            order: 0
+                        }
                     ]
                 },
                 options: {
@@ -514,13 +526,33 @@
                             borderColor: '#30363d', 
                             borderWidth: 1,
                             callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toLocaleString() + ' kg';
+                                    }
+                                    return label;
+                                },
                                 afterBody: function(tooltipItems) {
                                     const index = tooltipItems[0].dataIndex;
                                     const activeDay = activeDays[index];
-                                    if (activeDay && activeDay.comment && activeDay.comment.trim() !== "") {
-                                        return `\n📝 หมายเหตุ/คอมเม้นต์:\n${activeDay.comment}`;
+                                    let summary = '';
+                                    if (activeDay) {
+                                        const total = totalInputData[index];
+                                        const diff = total - 85000;
+                                        if (total >= 85000) {
+                                            summary += `\n🎯 บรรลุ KPI (+${diff.toLocaleString()} kg)`;
+                                        } else {
+                                            summary += `\n⚠️ ต่ำกว่า KPI (-${Math.abs(diff).toLocaleString()} kg)`;
+                                        }
                                     }
-                                    return '';
+                                    if (activeDay && activeDay.comment && activeDay.comment.trim() !== "") {
+                                        summary += `\n📝 หมายเหตุ: ${activeDay.comment}`;
+                                    }
+                                    return summary;
                                 }
                             }
                         }
