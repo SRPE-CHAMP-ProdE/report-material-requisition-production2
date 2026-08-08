@@ -121,14 +121,14 @@
 
             <div class="bg-github-card border border-github-border rounded-md p-3 shadow-sm hover:border-github-muted transition-all">
                 <div class="flex items-center justify-between text-github-muted text-[11px] font-medium">
-                    <span>ACTIVE MACHINES</span>
-                    <i data-lucide="cpu" class="w-3.5 h-3.5 text-github-blue"></i>
+                    <span>AVERAGE DAILY INPUT (ยอดเฉลี่ยต่อวัน)</span>
+                    <i data-lucide="activity" class="w-3.5 h-3.5 text-github-blue"></i>
                 </div>
                 <div class="mt-1 flex items-baseline space-x-1.5">
-                    <span class="text-xl font-bold text-white">14</span>
-                    <span class="text-[11px] text-github-blue font-medium">EXT-01 ถึง EXT-14</span>
+                    <span class="text-xl font-bold text-white" id="stat-avg-daily">0</span>
+                    <span class="text-[11px] text-github-blue font-medium">kg/วัน</span>
                 </div>
-                <p class="text-[11px] text-github-muted mt-0.5">สายการผลิตประจำเดือน</p>
+                <p class="text-[11px] text-github-muted mt-0.5">เฉลี่ยต่อวันที่บันทึกข้อมูล</p>
             </div>
         </div>
 
@@ -396,22 +396,28 @@
             let totalInputAll = 0;
             let totalGoodAll = 0;
             let totalDefectAll = 0;
+            let activeDaysCount = 0;
 
             dataset.forEach(d => {
                 const m = calculateMetrics(d);
-                totalInputAll += m.totalInput;
-                totalGoodAll += m.goodVal;
-                totalDefectAll += m.defect;
+                if (m.totalInput > 0) {
+                    totalInputAll += m.totalInput;
+                    totalGoodAll += m.goodVal;
+                    totalDefectAll += m.defect;
+                    activeDaysCount++;
+                }
             });
 
             const overallGoodPct = totalInputAll > 0 ? (totalGoodAll / totalInputAll) * 100 : 0;
             const overallDefectPct = totalInputAll > 0 ? (totalDefectAll / totalInputAll) * 100 : 0;
+            const avgDailyInput = activeDaysCount > 0 ? totalInputAll / activeDaysCount : 0;
 
             document.getElementById('stat-total-input').innerText = totalInputAll.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('stat-total-good').innerText = totalGoodAll.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('stat-total-good-pct').innerText = overallGoodPct.toFixed(2) + '% ของดี';
             document.getElementById('stat-total-defect').innerText = totalDefectAll.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('stat-total-defect-pct').innerText = overallDefectPct.toFixed(2) + '% ของเสีย';
+            document.getElementById('stat-avg-daily').innerText = avgDailyInput.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
         }
 
         function renderMatrixTable(dataToRender = dataset) {
