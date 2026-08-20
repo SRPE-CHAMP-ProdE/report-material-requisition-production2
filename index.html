@@ -82,7 +82,7 @@
             </button>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="grid grid-cols-5 gap-3">
             <div class="bg-github-card border border-github-border rounded-md p-3 shadow-sm hover:border-github-muted transition-all">
                 <div class="flex items-center justify-between text-github-muted text-[11px] font-medium">
                     <span>TOTAL INPUT (ยอดเบิกเม็ดรวม)</span>
@@ -129,6 +129,18 @@
                     <span class="text-[11px] text-github-blue font-medium">kg/วัน</span>
                 </div>
                 <p class="text-[11px] text-github-muted mt-0.5">เฉลี่ยต่อวันที่บันทึกข้อมูล</p>
+            </div>
+
+            <div class="bg-github-card border border-github-border rounded-md p-3 shadow-sm hover:border-github-muted transition-all">
+                <div class="flex items-center justify-between text-github-muted text-[11px] font-medium">
+                    <span>AVERAGE DAILY DEFECT (ของเสียเฉลี่ย/วัน)</span>
+                    <i data-lucide="trending-down" class="w-3.5 h-3.5 text-github-red"></i>
+                </div>
+                <div class="mt-1 flex items-baseline space-x-1.5">
+                    <span class="text-xl font-bold text-github-red" id="stat-avg-daily-defect">0</span>
+                    <span class="text-[11px] text-github-red font-medium" id="stat-avg-daily-defect-pct">0%</span>
+                </div>
+                <p class="text-[11px] text-github-muted mt-0.5">เฉลี่ยของเสียต่อวันที่บันทึก</p>
             </div>
         </div>
 
@@ -411,6 +423,7 @@
             const overallGoodPct = totalInputAll > 0 ? (totalGoodAll / totalInputAll) * 100 : 0;
             const overallDefectPct = totalInputAll > 0 ? (totalDefectAll / totalInputAll) * 100 : 0;
             const avgDailyInput = activeDaysCount > 0 ? totalInputAll / activeDaysCount : 0;
+            const avgDailyDefect = activeDaysCount > 0 ? totalDefectAll / activeDaysCount : 0;
 
             document.getElementById('stat-total-input').innerText = totalInputAll.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('stat-total-good').innerText = totalGoodAll.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -418,6 +431,8 @@
             document.getElementById('stat-total-defect').innerText = totalDefectAll.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('stat-total-defect-pct').innerText = overallDefectPct.toFixed(2) + '% ของเสีย';
             document.getElementById('stat-avg-daily').innerText = avgDailyInput.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('stat-avg-daily-defect').innerText = avgDailyDefect.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('stat-avg-daily-defect-pct').innerText = overallDefectPct.toFixed(2) + '%';
         }
 
         function renderMatrixTable(dataToRender = dataset) {
