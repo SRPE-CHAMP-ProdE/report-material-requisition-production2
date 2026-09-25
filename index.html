@@ -47,7 +47,7 @@
         </div>
         
         <div class="flex items-center space-x-3">
-            <!-- Sheet / Month Selector Dropdown -->
+            <!-- Sheet / Month Selector Dropdown (UpperCase matching Google Sheets Tabs) -->
             <div class="flex items-center space-x-1.5 bg-github-card border border-github-border rounded-md px-3 py-1 text-xs">
                 <span class="text-github-muted">เลือกเดือน:</span>
                 <select id="sheet-selector" onchange="changeSheet(this.value)" class="bg-github-dark text-white border border-github-border rounded px-2 py-1 text-xs focus:outline-none focus:border-github-blue font-medium cursor-pointer">
@@ -85,6 +85,7 @@
             </button>
         </div>
 
+        <!-- 5 Summary Cards in a Single Horizontal Row -->
         <div class="grid grid-cols-5 gap-3">
             <div class="bg-github-card border border-github-border rounded-md p-3 shadow-sm hover:border-github-muted transition-all">
                 <div class="flex items-center justify-between text-github-muted text-[11px] font-medium">
@@ -155,7 +156,7 @@
                         <i data-lucide="bar-chart-3" class="w-4 h-4 text-github-blue"></i>
                         <h3 class="font-semibold text-white text-xs">กราฟแสดงผลรายวัน (แท่งที่ 1 สีฟ้า: ยอดรวม/วัน | แท่งที่ 2: สัดส่วนของดีสีเขียว & ของเสียสีแดง)</h3>
                     </div>
-                    <span class="text-[11px] text-github-muted bg-github-dark px-2 py-0.5 border border-github-border rounded" id="chart-month-badge">AUG,26</span>
+                    <span class="text-[11px] text-github-muted bg-github-dark px-2 py-0.5 border border-github-border rounded" id="chart-month-badge">SEP,26</span>
                 </div>
                 <div class="relative h-[420px] w-full">
                     <canvas id="mainChart"></canvas>
@@ -177,7 +178,7 @@
                 </div>
                 <div class="p-3 bg-github-dark border border-github-border rounded-md max-h-[380px] overflow-y-auto">
                     <div class="grid grid-cols-5 sm:grid-cols-7 md:grid-cols-10 lg:grid-cols-14 gap-2" id="daily-summary-grid">
-                        <!-- Populated by JS with Compact Heatmap Tiles -->
+                        <!-- Populated by JS -->
                     </div>
                 </div>
             </div>
@@ -262,7 +263,7 @@
             };
             let parts = sheetName.split(',');
             let mStr = parts[0].trim();
-            let month = monthMap[mStr] || 8;
+            let month = monthMap[mStr] || 9;
             let year = 2026;
             if (parts[1]) {
                 let y = parseInt(parts[1].trim(), 10);
@@ -438,8 +439,32 @@
             document.getElementById('stat-avg-daily-defect-pct').innerText = overallDefectPct.toFixed(2) + '%';
         }
 
+        function renderDailyHeatmap() {
+            const grid = document.getElementById('daily-summary-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            dataset.forEach((item, index) => {
+                const m = calculateMetrics(item);
+                let bgClass = 'bg-github-dark border-github-border text-github-muted';
+                if (m.totalInput > 0) {
+                    if (m.defectPct < 7) bgClass = 'bg-[#39d353]/20 border-[#39d353]/50 text-[#39d353] font-bold';
+                    else if (m.defectPct <= 15) bgClass = 'bg-amber-500/20 border-amber-500/50 text-amber-400 font-bold';
+                    else bgClass = 'bg-[#f85149]/20 border-[#f85149]/50 text-[#f85149] font-bold';
+                }
+                let tile = `
+                    <div class="${bgClass} border rounded p-2 text-center flex flex-col justify-between items-center h-16 transition-transform hover:scale-105 cursor-pointer shadow-sm" title="${item.date}: Input ${m.totalInput.toLocaleString()} kg, Defect ${m.defectPct.toFixed(1)}%">
+                        <span class="text-[10px] opacity-90">${index + 1}</span>
+                        <span class="text-xs font-mono">${m.totalInput > 0 ? (m.totalInput/1000).toFixed(1) + 'k' : '-'}</span>
+                        <span class="text-[9px] opacity-80">${m.totalInput > 0 ? m.defectPct.toFixed(1) + '%' : 'No Data'}</span>
+                    </div>
+                `;
+                grid.innerHTML += tile;
+            });
+        }
+
         function renderMatrixTable(dataToRender = dataset) {
             const tbody = document.getElementById('matrix-tbody');
+            if (!tbody) return;
             tbody.innerHTML = '';
 
             dataToRender.forEach((item) => {
@@ -473,46 +498,11 @@
             const totalInputData = activeDays.map(d => calculateMetrics(d).totalInput);
             const goodData = activeDays.map(d => calculateMetrics(d).goodVal);
             const defectData = activeDays.map(d => calculateMetrics(d).defect);
-            const kpiTargetData = new Array(labels.length).fill(85000); // KPI 85 ตัน = 85,000 kg
+            const kpiTargetData = new Array(labels.length).fill(85000);
 
             if (mainChartInstance) mainChartInstance.destroy();
             const ctxMain = document.getElementById('mainChart').getContext('2d');
             
-            const percentagePlugin = {
-                id: 'percentagePlugin',
-                afterDatasetsDraw(chart) {
-                    const { ctx } = chart;
-                    ctx.save();
-                    ctx.font = 'bold 10px Inter, sans-serif';
-                    ctx.textAlign = 'center';
-
-                    const metaGood = chart.getDatasetMeta(1);   
-                    const metaDefect = chart.getDatasetMeta(2); 
-
-                    metaGood.data.forEach((bar, index) => {
-                        const totalInput = totalInputData[index];
-                        const goodVal = goodData[index];
-                        const defectVal = defectData[index];
-
-                        if (totalInput > 0) {
-                            if (bar && goodVal > 0) {
-                                const goodPct = ((goodVal / totalInput) * 100).toFixed(1);
-                                ctx.fillStyle = '#ffffff';
-                                ctx.fillText(`${goodPct}%`, bar.x, (bar.base + bar.y) / 2);
-                            }
-
-                            const defectBar = metaDefect.data[index];
-                            if (defectBar && defectVal > 0) {
-                                const defectPct = ((defectVal / totalInput) * 100).toFixed(1);
-                                ctx.fillStyle = '#ffffff';
-                                ctx.fillText(`${defectPct}%`, defectBar.x, Math.max(20, defectBar.y - 10));
-                            }
-                        }
-                    });
-                    ctx.restore();
-                }
-            };
-
             const chartConfig = {
                 type: 'bar',
                 data: {
@@ -548,95 +538,40 @@
                             titleColor: '#fff', 
                             bodyColor: '#c9d1d9', 
                             borderColor: '#30363d', 
-                            borderWidth: 1,
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed.y !== null) {
-                                        label += context.parsed.y.toLocaleString() + ' kg';
-                                    }
-                                    return label;
-                                },
-                                afterBody: function(tooltipItems) {
-                                    const index = tooltipItems[0].dataIndex;
-                                    const activeDay = activeDays[index];
-                                    let summary = '';
-                                    if (activeDay) {
-                                        const total = totalInputData[index];
-                                        const diff = total - 85000;
-                                        if (total >= 85000) {
-                                            summary += `\n🎯 บรรลุ KPI (+${diff.toLocaleString()} kg)`;
-                                        } else {
-                                            summary += `\n⚠️ ต่ำกว่า KPI (-${Math.abs(diff).toLocaleString()} kg)`;
-                                        }
-                                    }
-                                    if (activeDay && activeDay.comment && activeDay.comment.trim() !== "") {
-                                        summary += `\n📝 หมายเหตุ: ${activeDay.comment}`;
-                                    }
-                                    return summary;
-                                }
-                            }
+                            borderWidth: 1 
                         }
                     }
-                },
-                plugins: [percentagePlugin]
+                }
             };
-
             mainChartInstance = new Chart(ctxMain, chartConfig);
         }
 
-        function renderDailySummary() {
-            const grid = document.getElementById('daily-summary-grid');
-            grid.className = "grid grid-cols-5 sm:grid-cols-7 md:grid-cols-10 lg:grid-cols-14 gap-2";
-            grid.innerHTML = '';
-            
-            dataset.forEach((item, index) => {
-                const m = calculateMetrics(item);
-                let bgClass = 'bg-github-dark border-github-border text-github-muted';
-                let indicatorColor = 'bg-github-border';
-                
-                if (m.totalInput > 0) {
-                    if (m.defectPct < 7) {
-                        bgClass = 'bg-[#2ea043]/20 border-[#2ea043]/60 text-white hover:bg-[#2ea043]/30';
-                        indicatorColor = 'bg-[#39d353]';
-                    } else if (m.defectPct < 15) {
-                        bgClass = 'bg-amber-500/20 border-amber-500/60 text-white hover:bg-amber-500/30';
-                        indicatorColor = 'bg-amber-500';
-                    } else {
-                        bgClass = 'bg-github-red/20 border-github-red/60 text-white hover:bg-github-red/30';
-                        indicatorColor = 'bg-github-red';
-                    }
-                }
-
-                let shortDate = item.date.split(' ')[0]; // เช่น "01"
-                let tooltipText = `วันที่: ${item.date} | ยอดรวม: ${m.totalInput > 0 ? m.totalInput.toLocaleString() + ' kg' : 'ไม่มีข้อมูล'} | ของเสีย: ${m.defectPct.toFixed(2)}%`;
-
-                let tileHtml = `
-                    <div class="${bgClass} border rounded-md p-2 flex flex-col items-center justify-center transition-all cursor-pointer shadow-sm font-mono text-center" title="${tooltipText}">
-                        <div class="text-[10px] text-github-muted font-medium">${shortDate}</div>
-                        <div class="text-xs font-bold my-1 ${m.totalInput > 0 ? 'text-white' : 'text-github-muted'}">${m.totalInput > 0 ? m.defectPct.toFixed(1) + '%' : '-'}</div>
-                        <div class="w-2 h-2 rounded-full ${indicatorColor}"></div>
-                    </div>
-                `;
-                grid.innerHTML += tileHtml;
-            });
+        function filterMatrixTable() {
+            const query = document.getElementById('search-matrix').value.toLowerCase();
+            const filtered = dataset.filter(d => d.date.toLowerCase().includes(query) || (d.comment && d.comment.toLowerCase().includes(query)));
+            renderMatrixTable(filtered);
         }
 
-        function filterMatrixTable() {
-            const query = document.getElementById('search-matrix').value.toLowerCase().trim();
-            if (!query) {
-                renderMatrixTable(dataset);
-                return;
-            }
-            const filtered = dataset.filter(d => {
-                const dateStr = String(d.date).toLowerCase();
-                let dayNum = parseInt(query, 10);
-                let matchesDay = false;
-                if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31) {
-                    let dayStrFormatted = dayNum < 10 ? '0' + dayNum : '' + dayNum;
-                    if (dateStr.startsWith(dayStrFormatted) || dateStr.startsWith(dayNum + ' ')) {
-                        matchesDay = true;
-                    }
+        function refreshAll() {
+            updateDashboardStats();
+            renderCharts();
+            renderDailyHeatmap();
+            renderMatrixTable();
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-msg');
+            msgEl.innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        window.onload = function() {
+            fetchLiveData();
+        };
+    </script>
+</body>
+</html>
