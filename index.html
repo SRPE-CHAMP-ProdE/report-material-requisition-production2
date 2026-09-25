@@ -54,6 +54,9 @@
                     <option value="Jul,26">กรกฎาคม 2569 (Jul,26)</option>
                     <option value="AUG,26" selected>สิงหาคม 2569 (AUG,26)</option>
                     <option value="SEP,26">กันยายน 2569 (SEP,26)</option>
+                    <option value="Oct,26">ตุลาคม 2569 (Oct,26)</option>
+                    <option value="Nov,26">พฤศจิกายน 2569 (Nov,26)</option>
+                    <option value="Dec,26">ธันวาคม 2569 (Dec,26)</option>
                 </select>
             </div>
 
@@ -637,31 +640,3 @@
                     if (dateStr.startsWith(dayStrFormatted) || dateStr.startsWith(dayNum + ' ')) {
                         matchesDay = true;
                     }
-                }
-                return dateStr.includes(query) || matchesDay;
-            });
-            renderMatrixTable(filtered);
-        }
-
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-msg').innerText = msg;
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
-        }
-
-        function refreshAll() {
-            updateDashboardStats();
-            renderMatrixTable();
-            renderCharts();
-            renderDailySummary();
-        }
-
-        window.onload = function() {
-            fetchLiveData();
-        };
-    </script>
-</body>
-</html>
