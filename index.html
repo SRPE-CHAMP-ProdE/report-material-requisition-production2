@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub QC Dashboard & Machine Matrix</title>
+    <title>GitHub QC Dashboard & Machine Matrix (EXT-01 to EXT-16)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -42,12 +42,12 @@
             <div class="flex items-center space-x-2 text-sm">
                 <span class="text-github-blue font-medium hover:underline cursor-pointer">sr-pe-group</span>
                 <span class="text-github-muted">/</span>
-                <span class="font-bold text-white hover:underline cursor-pointer">report-material-requisition-ext1-14</span>
+                <span class="font-bold text-white hover:underline cursor-pointer">report-material-requisition-ext1-16</span>
             </div>
         </div>
         
         <div class="flex items-center space-x-3">
-            <!-- Sheet / Month Selector Dropdown (UpperCase matching Google Sheets Tabs) -->
+            <!-- Sheet / Month Selector Dropdown -->
             <div class="flex items-center space-x-1.5 bg-github-card border border-github-border rounded-md px-3 py-1 text-xs">
                 <span class="text-github-muted">เลือกเดือน:</span>
                 <select id="sheet-selector" onchange="changeSheet(this.value)" class="bg-github-dark text-white border border-github-border rounded px-2 py-1 text-xs focus:outline-none focus:border-github-blue font-medium cursor-pointer">
@@ -81,7 +81,7 @@
             </button>
             <button onclick="switchTab('matrix')" id="tab-matrix" class="pb-3 border-b-2 border-transparent text-github-muted hover:text-white flex items-center space-x-2 transition-colors">
                 <i data-lucide="table" class="w-4 h-4"></i>
-                <span>ตารางเมทริกซ์เครื่องจักร EXT-01 ถึง EXT-14 (Google Sheets View)</span>
+                <span>ตารางเมทริกซ์เครื่องจักร EXT-01 ถึง EXT-16 (Google Sheets View)</span>
             </button>
         </div>
 
@@ -120,7 +120,7 @@
                     <span class="text-xl font-bold text-github-red" id="stat-total-defect">0</span>
                     <span class="text-[11px] text-github-red font-medium" id="stat-total-defect-pct">0%</span>
                 </div>
-                <p class="text-[11px] text-github-muted mt-0.5">ผลรวมของเสียจริง (Column S)</p>
+                <p class="text-[11px] text-github-muted mt-0.5">ผลรวมของเสียจริง (Column U)</p>
             </div>
 
             <div class="bg-github-card border border-github-border rounded-md p-3 shadow-sm hover:border-github-muted transition-all">
@@ -163,7 +163,7 @@
                 </div>
             </div>
 
-            <!-- Full Width Daily Production & Quality Heatmap Container -->
+            <!-- Full Width Quality Heatmap Container -->
             <div class="bg-github-card border border-github-border rounded-md p-4 shadow-sm w-full">
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-3">
                     <div class="flex items-center space-x-2">
@@ -189,7 +189,7 @@
                 <div class="p-3 bg-github-dark border-b border-github-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div class="flex items-center space-x-2">
                         <i data-lucide="file-spreadsheet" class="w-4 h-4 text-github-green"></i>
-                        <h3 class="font-semibold text-white text-xs">รายงานการเบิกเม็ด แยกตามเครื่องจักร (Google Sheets View)</h3>
+                        <h3 class="font-semibold text-white text-xs">รายงานการเบิกเม็ด แยกตามเครื่องจักร EXT-01 ถึง EXT-16 (Google Sheets View)</h3>
                     </div>
                     <div class="flex items-center space-x-2 w-full sm:w-auto">
                         <input type="text" id="search-matrix" onkeyup="filterMatrixTable()" placeholder="ค้นหาวันที่..." class="bg-github-card border border-github-border rounded px-2.5 py-1 text-[11px] text-github-text w-full sm:w-56 focus:outline-none focus:border-github-blue">
@@ -328,39 +328,8 @@
             } catch (error) {
                 console.error("Fetch error:", error);
                 statusDot.className = "inline-block w-2 h-2 rounded-full bg-github-red mr-1";
-                statusText.innerText = "Connection Failed (Using Mock Data)";
-                initFallbackData();
+                statusText.innerText = "Connection Failed";
             }
-        }
-
-        function initFallbackData() {
-            let { month, year } = getSheetMonthYear();
-            let maxDays = new Date(year, month, 0).getDate();
-            let rawData = [];
-            for (let day = 1; day <= maxDays; day++) {
-                let dayStr = day < 10 ? '0' + day : String(day);
-                let machines = new Array(14).fill(0);
-                let defect = 0;
-                for(let m=0; m<14; m++) {
-                    machines[m] = Math.floor(Math.random() * 1200) + 800;
-                }
-                const totalIn = machines.reduce((a,b)=>a+b, 0);
-                let defectPct = (Math.random() * 14) + 3; 
-                if (day % 7 === 0) defectPct = (Math.random() * 8) + 12; 
-                defect = parseFloat((totalIn * (defectPct / 100)).toFixed(2));
-
-                let sampleComment = day === 5 ? "เครื่องทำงานปกติ ตรวจสอบอุณหภูมิสม่ำเสมอ" : "";
-
-                rawData.push({
-                    id: day,
-                    date: `${dayStr}/${month}/${year}`,
-                    machines: machines,
-                    defect: defect,
-                    comment: sampleComment
-                });
-            }
-            dataset = normalizeDataset(rawData);
-            refreshAll();
         }
 
         let mainChartInstance = null;
@@ -434,146 +403,4 @@
             document.getElementById('stat-total-input').innerText = totalInputAll.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('stat-total-good').innerText = totalGoodAll.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('stat-total-good-pct').innerText = overallGoodPct.toFixed(2) + '% ของดี';
-            document.getElementById('stat-total-defect').innerText = totalDefectAll.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('stat-total-defect-pct').innerText = overallDefectPct.toFixed(2) + '% ของเสีย';
-            document.getElementById('stat-avg-daily').innerText = avgDailyInput.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('stat-avg-daily-defect').innerText = avgDailyDefect.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('stat-avg-daily-defect-pct').innerText = overallDefectPct.toFixed(2) + '%';
-        }
-
-        function renderDailyHeatmap() {
-            const grid = document.getElementById('daily-summary-grid');
-            if (!grid) return;
-            grid.innerHTML = '';
-            dataset.forEach((item, index) => {
-                const m = calculateMetrics(item);
-                let bgClass = 'bg-github-dark border-github-border text-github-muted';
-                if (m.totalInput > 0) {
-                    if (m.defectPct < 7) bgClass = 'bg-[#39d353]/20 border-[#39d353]/50 text-[#39d353] font-bold';
-                    else if (m.defectPct <= 15) bgClass = 'bg-amber-500/20 border-amber-500/50 text-amber-400 font-bold';
-                    else bgClass = 'bg-[#f85149]/20 border-[#f85149]/50 text-[#f85149] font-bold';
-                }
-                let tile = `
-                    <div class="${bgClass} border rounded p-2 text-center flex flex-col justify-between items-center h-16 transition-transform hover:scale-105 cursor-pointer shadow-sm" title="${item.date}: Input ${m.totalInput.toLocaleString()} kg, Defect ${m.defectPct.toFixed(1)}%">
-                        <span class="text-[10px] opacity-90">${index + 1}</span>
-                        <span class="text-xs font-mono">${m.totalInput > 0 ? (m.totalInput/1000).toFixed(1) + 'k' : '-'}</span>
-                        <span class="text-[9px] opacity-80">${m.totalInput > 0 ? m.defectPct.toFixed(1) + '%' : 'No Data'}</span>
-                    </div>
-                `;
-                grid.innerHTML += tile;
-            });
-        }
-
-        function renderMatrixTable(dataToRender = dataset) {
-            const tbody = document.getElementById('matrix-tbody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-
-            dataToRender.forEach((item) => {
-                const m = calculateMetrics(item);
-                const machines = Array.isArray(item.machines) ? item.machines : new Array(14).fill(0);
-                let machineCells = machines.map(val => `<td class="py-1.5 px-2.5">${val > 0 ? val.toLocaleString() : '-'}</td>`).join('');
-                
-                let row = `
-                    <tr class="hover:bg-github-hover transition-colors">
-                        <td class="py-1.5 px-2.5 font-bold text-white">${item.date}</td>
-                        ${machineCells}
-                        <td class="py-1.5 px-2.5 text-github-blue font-bold">${m.totalInput > 0 ? m.totalInput.toLocaleString() : '-'}</td>
-                        <td class="py-1.5 px-2.5 text-github-green font-semibold">${m.totalInput > 0 ? m.goodVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}</td>
-                        <td class="py-1.5 px-2.5 text-github-green">${m.totalInput > 0 ? m.goodPct.toFixed(2) + '%' : '-'}</td>
-                        <td class="py-1.5 px-2.5 text-github-red font-semibold">${m.totalInput > 0 ? m.defect.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}</td>
-                        <td class="py-1.5 px-2.5 text-github-red">${m.totalInput > 0 ? m.defectPct.toFixed(2) + '%' : '-'}</td>
-                        <td class="py-1.5 px-2.5">
-                            <span class="px-1.5 py-0.5 rounded text-[9px] ${m.status.badgeBg} ${m.status.color}">${m.status.text}</span>
-                        </td>
-                        <td class="py-1.5 px-2.5 text-github-muted text-[10px] max-w-xs truncate" title="${item.comment || ''}">${item.comment ? '📝 ' + item.comment : '-'}</td>
-                    </tr>
-                `;
-                tbody.innerHTML += row;
-            });
-            lucide.createIcons();
-        }
-
-        function renderCharts() {
-            const activeDays = dataset.filter(d => calculateMetrics(d).totalInput > 0);
-            const labels = activeDays.map(d => d.date);
-            const totalInputData = activeDays.map(d => calculateMetrics(d).totalInput);
-            const goodData = activeDays.map(d => calculateMetrics(d).goodVal);
-            const defectData = activeDays.map(d => calculateMetrics(d).defect);
-            const kpiTargetData = new Array(labels.length).fill(85000);
-
-            if (mainChartInstance) mainChartInstance.destroy();
-            const ctxMain = document.getElementById('mainChart').getContext('2d');
-            
-            const chartConfig = {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { label: 'ยอดรวม/วัน (Total Input)', data: totalInputData, backgroundColor: '#58a6ff', borderRadius: 4, stack: 'stack-total' },
-                        { label: 'ยอดของดี (Good)', data: goodData, backgroundColor: '#2ea043', borderRadius: 4, stack: 'stack-quality' },
-                        { label: 'ของเสีย (Defect)', data: defectData, backgroundColor: '#f85149', borderRadius: 4, stack: 'stack-quality' },
-                        { 
-                            label: 'KPI Target (85 ตัน / 85,000 kg)', 
-                            data: kpiTargetData, 
-                            type: 'line', 
-                            borderColor: '#f0883e', 
-                            borderWidth: 2.5, 
-                            borderDash: [6, 6], 
-                            pointRadius: 0, 
-                            fill: false,
-                            order: 0
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { stacked: false, grid: { color: '#30363d' }, ticks: { color: '#8b949e', maxRotation: 45, minRotation: 0 } },
-                        y: { stacked: true, grid: { color: '#30363d' }, ticks: { color: '#8b949e' } }
-                    },
-                    plugins: {
-                        legend: { labels: { color: '#c9d1d9', font: { size: 11 } } },
-                        tooltip: { 
-                            backgroundColor: '#161b22', 
-                            titleColor: '#fff', 
-                            bodyColor: '#c9d1d9', 
-                            borderColor: '#30363d', 
-                            borderWidth: 1 
-                        }
-                    }
-                }
-            };
-            mainChartInstance = new Chart(ctxMain, chartConfig);
-        }
-
-        function filterMatrixTable() {
-            const query = document.getElementById('search-matrix').value.toLowerCase();
-            const filtered = dataset.filter(d => d.date.toLowerCase().includes(query) || (d.comment && d.comment.toLowerCase().includes(query)));
-            renderMatrixTable(filtered);
-        }
-
-        function refreshAll() {
-            updateDashboardStats();
-            renderCharts();
-            renderDailyHeatmap();
-            renderMatrixTable();
-        }
-
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            const msgEl = document.getElementById('toast-msg');
-            msgEl.innerText = msg;
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
-        }
-
-        window.onload = function() {
-            fetchLiveData();
-        };
-    </script>
-</body>
-</html>
+            document.getElementById('stat-total-
